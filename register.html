@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>สำหรับผู้ปฏิบัติงาน — ระบบฐานข้อมูลนักสังคมสงเคราะห์แห่งชาติ</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="flag-band"></div>
+<header class="site-header">
+  <div class="header-inner">
+    <img class="logo" src="logo.png" alt="ตราสภาวิชาชีพสังคมสงเคราะห์">
+    <div class="header-titles">
+      <div class="th">ระบบฐานข้อมูลนักสังคมสงเคราะห์แห่งชาติ</div>
+      <div class="sub">สภาวิชาชีพสังคมสงเคราะห์ · Social Work Professions Council</div>
+    </div>
+    <nav class="main-nav">
+      <a href="index.html">หน้าหลัก</a>
+      <a href="courses.html">หลักสูตรที่ได้รับรอง</a>
+      <a href="register.html" class="active">สำหรับผู้ปฏิบัติงาน</a>
+      <a href="admin.html">ผู้ดูแลระบบ</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="container">
+
+    <!-- ============ GATE: choose login or register ============ -->
+    <div id="gateView">
+      <h2 class="section-title">สำหรับผู้ปฏิบัติงานด้านสวัสดิการสังคม</h2>
+      <p class="section-sub">ลงทะเบียนหรือเข้าสู่ระบบเพื่อจัดการข้อมูลส่วนตัวของท่าน ตามพระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล (PDPA)</p>
+      <div class="card mt-16" style="max-width:680px; border-color:#0b1f38; background:linear-gradient(135deg,#12253d,#1e3a5f); color:#fff;">
+        <div class="flex-between" style="flex-wrap:wrap; gap:12px;">
+          <div>
+            <h3 style="margin:0 0 4px; color:#fff;">เข้าสู่ระบบด้วย ThaiD</h3>
+            <p class="text-sm" style="color:#cfdcec; margin:0;">ยืนยันตัวตนด้วยแอปพลิเคชัน ThaiD ของกรมการปกครอง ไม่ต้องจำรหัสผ่าน</p>
+          </div>
+          <button class="btn" style="background:#fff; color:var(--navy-deep);" id="thaidLoginBtn">เข้าสู่ระบบด้วย ThaiD</button>
+        </div>
+        <div id="thaidLoginAlert" class="mt-8"></div>
+      </div>
+
+      <div class="grid grid-2 mt-16" style="max-width:680px;">
+        <div class="card">
+          <h3 style="margin-top:0;">เข้าสู่ระบบด้วยรหัสผ่าน</h3>
+          <p class="text-soft text-sm">ท่านเคยลงทะเบียนไว้แล้ว</p>
+          <button class="btn btn-navy" onclick="showView('loginView')">เข้าสู่ระบบ</button>
+        </div>
+        <div class="card">
+          <h3 style="margin-top:0;">ลงทะเบียนใหม่</h3>
+          <p class="text-soft text-sm">ยังไม่เคยลงทะเบียนในระบบ (หรือใช้ปุ่ม ThaiD ด้านบนเพื่อลงทะเบียนอัตโนมัติ)</p>
+          <button class="btn btn-primary" onclick="showView('registerView')">ลงทะเบียนด้วยรหัสผ่าน</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ LOGIN ============ -->
+    <div id="loginView" style="display:none;">
+      <div class="auth-shell" style="min-height:auto; padding:20px 0;">
+        <div class="auth-card">
+          <h2>เข้าสู่ระบบ</h2>
+          <div id="loginAlert"></div>
+          <div class="field">
+            <label>เลขบัตรประชาชน</label>
+            <input type="text" id="loginNationalId" maxlength="13" placeholder="เลขบัตรประชาชน 13 หลัก">
+          </div>
+          <div class="field">
+            <label>รหัสผ่าน</label>
+            <input type="password" id="loginPassword">
+          </div>
+          <button class="btn btn-navy" style="width:100%;" id="loginBtn">เข้าสู่ระบบ</button>
+          <p class="text-sm text-center mt-16"><a href="#" onclick="showView('gateView'); return false;">← กลับ</a></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ REGISTER ============ -->
+    <div id="registerView" style="display:none;">
+      <h2 class="section-title">ลงทะเบียนผู้ปฏิบัติงาน</h2>
+      <p class="section-sub">กรอกข้อมูลให้ครบถ้วน ท่านสามารถแก้ไขข้อมูลบางส่วนได้เองภายหลังจากเข้าสู่ระบบ</p>
+      <div id="registerAlert"></div>
+      <form id="registerForm" class="card">
+        <h3 style="margin-top:0;">ข้อมูลบุคคล</h3>
+        <div class="form-grid">
+          <div class="field"><label>คำนำหน้า *</label>
+            <select name="Prefix" required><option value="นาย">นาย</option><option value="นาง">นาง</option><option value="นางสาว">นางสาว</option><option value="อื่นๆ">อื่นๆ</option></select>
+          </div>
+          <div class="field"><label>เลขบัตรประชาชน * (13 หลัก)</label><input type="text" name="NationalID" maxlength="13" required></div>
+          <div class="field"><label>ชื่อ *</label><input type="text" name="FirstName" required></div>
+          <div class="field"><label>นามสกุล *</label><input type="text" name="LastName" required></div>
+          <div class="field"><label>เบอร์โทรศัพท์ *</label><input type="tel" name="Phone" required></div>
+          <div class="field"><label>อีเมล</label><input type="email" name="Email"></div>
+        </div>
+
+        <h3>ที่อยู่</h3>
+        <div class="form-grid">
+          <div class="field"><label>ที่อยู่ตามทะเบียนบ้าน</label><input type="text" name="HouseAddress"></div>
+          <div class="field"><label>ที่อยู่ปัจจุบัน</label><input type="text" name="CurrentAddress"></div>
+          <div class="field"><label>ที่ทำงาน</label><input type="text" name="WorkAddress"></div>
+          <div class="field"><label>จังหวัด *</label><input type="text" name="Province" required></div>
+        </div>
+
+        <h3>วุฒิการศึกษา</h3>
+        <div class="form-grid">
+          <div class="field"><label>ระดับการศึกษา</label>
+            <select name="EducationLevel"><option value="ปริญญาตรี">ปริญญาตรี</option><option value="ปริญญาโท">ปริญญาโท</option><option value="ปริญญาเอก">ปริญญาเอก</option><option value="อนุปริญญา/ปวส.">อนุปริญญา/ปวส.</option><option value="อื่นๆ">อื่นๆ</option></select>
+          </div>
+          <div class="field"><label>สาขาวิชา</label><input type="text" name="EducationField"></div>
+          <div class="field"><label>สถาบัน</label><input type="text" name="EducationInstitute"></div>
+          <div class="field"><label>ปีที่จบการศึกษา</label><input type="text" name="EducationYear"></div>
+        </div>
+
+        <h3>การทำงาน</h3>
+        <div class="form-grid">
+          <div class="field"><label>ประเภทตำแหน่งงาน *</label>
+            <select name="PositionType" required>
+              <option value="นักสังคมสงเคราะห์">นักสังคมสงเคราะห์</option>
+              <option value="นักพัฒนาสังคม">นักพัฒนาสังคม</option>
+              <option value="นักพัฒนาชุมชน">นักพัฒนาชุมชน</option>
+              <option value="อื่นๆ">อื่นๆ</option>
+            </select>
+          </div>
+          <div class="field"><label>หน่วยงาน/สังกัด</label><input type="text" name="AgencyName"></div>
+          <div class="field"><label>ประเภทหน่วยงาน</label>
+            <select name="AgencyType"><option value="ภาครัฐ">ภาครัฐ</option><option value="ท้องถิ่น">ท้องถิ่น</option><option value="เอกชน">เอกชน</option><option value="NGO">NGO</option></select>
+          </div>
+          <div class="field"><label>ความเชี่ยวชาญ (คั่นด้วยจุลภาค)</label><input type="text" name="Specializations" placeholder="เช่น เด็กและครอบครัว, ผู้สูงอายุ"></div>
+        </div>
+
+        <h3>ตั้งรหัสผ่านสำหรับเข้าสู่ระบบ</h3>
+        <div class="form-grid">
+          <div class="field"><label>รหัสผ่าน * (อย่างน้อย 8 ตัวอักษร)</label><input type="password" id="regPassword" minlength="8" required></div>
+          <div class="field"><label>ยืนยันรหัสผ่าน *</label><input type="password" id="regPassword2" minlength="8" required></div>
+        </div>
+
+        <p class="text-sm text-soft">ข้อมูลของท่านจะถูกจัดเก็บและใช้งานตามพระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล (PDPA) เพื่อวัตถุประสงค์ในการกำกับดูแลมาตรฐานวิชาชีพเท่านั้น</p>
+
+        <div class="flex gap-12">
+          <button type="submit" class="btn btn-primary" id="registerBtn">ลงทะเบียน</button>
+          <button type="button" class="btn btn-ghost" onclick="showView('gateView')">ยกเลิก</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- ============ PROFILE (after login) ============ -->
+    <div id="profileView" style="display:none;">
+      <div class="flex-between">
+        <div>
+          <h2 class="section-title">ข้อมูลส่วนตัวของฉัน</h2>
+          <p class="section-sub" id="profileSubtitle"></p>
+        </div>
+        <button class="btn btn-ghost" onclick="logout()">ออกจากระบบ</button>
+      </div>
+
+      <div class="grid grid-3 mt-16">
+        <div class="card kpi"><div class="num" id="profMembership">-</div><div class="label">สถานะสมาชิกภาพ</div></div>
+        <div class="card kpi accent-green"><div class="num" id="profLicense">-</div><div class="label">สถานะใบอนุญาต</div></div>
+        <div class="card kpi accent-gold"><div class="num" id="profLicenseExp">-</div><div class="label">ใบอนุญาตหมดอายุ</div></div>
+      </div>
+
+      <form id="profileForm" class="card mt-24">
+        <h3 style="margin-top:0;">แก้ไขข้อมูล</h3>
+        <div id="profileAlert"></div>
+        <div class="form-grid">
+          <div class="field"><label>เบอร์โทรศัพท์</label><input type="tel" name="Phone"></div>
+          <div class="field"><label>อีเมล</label><input type="email" name="Email"></div>
+          <div class="field"><label>ที่อยู่ตามทะเบียนบ้าน</label><input type="text" name="HouseAddress"></div>
+          <div class="field"><label>ที่อยู่ปัจจุบัน</label><input type="text" name="CurrentAddress"></div>
+          <div class="field"><label>ที่ทำงาน</label><input type="text" name="WorkAddress"></div>
+          <div class="field"><label>จังหวัด</label><input type="text" name="Province"></div>
+          <div class="field"><label>ระดับการศึกษา</label><input type="text" name="EducationLevel"></div>
+          <div class="field"><label>สาขาวิชา</label><input type="text" name="EducationField"></div>
+          <div class="field"><label>สถาบัน</label><input type="text" name="EducationInstitute"></div>
+          <div class="field"><label>ประเภทตำแหน่งงาน</label>
+            <select name="PositionType"><option>นักสังคมสงเคราะห์</option><option>นักพัฒนาสังคม</option><option>นักพัฒนาชุมชน</option><option>อื่นๆ</option></select>
+          </div>
+          <div class="field"><label>หน่วยงาน/สังกัด</label><input type="text" name="AgencyName"></div>
+          <div class="field"><label>ความเชี่ยวชาญ (คั่นด้วยจุลภาค)</label><input type="text" name="Specializations"></div>
+        </div>
+        <button type="submit" class="btn btn-primary">บันทึกการแก้ไข</button>
+      </form>
+
+      <div class="card mt-16">
+        <h3 style="margin-top:0;">ประวัติการทำงาน</h3>
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead><tr><th>หน่วยงาน</th><th>ตำแหน่ง</th><th>เริ่ม</th><th>สิ้นสุด</th></tr></thead>
+            <tbody id="workHistoryBody"><tr><td colspan="4" class="text-soft">ไม่มีข้อมูล</td></tr></tbody>
+          </table>
+        </div>
+        <p class="text-sm text-soft mt-8">การเพิ่ม/แก้ไขประวัติการทำงานย้อนหลัง ดำเนินการโดยเจ้าหน้าที่สภาวิชาชีพฯ</p>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <div>© สภาวิชาชีพสังคมสงเคราะห์ · ระบบฐานข้อมูลนักสังคมสงเคราะห์แห่งชาติ</div>
+    <div>ข้อเสนอแนะ: thaisocialworkcouncil@gmail.com</div>
+  </div>
+</footer>
+
+<script src="api.js"></script>
+<script src="register.js"></script>
+</body>
+</html>

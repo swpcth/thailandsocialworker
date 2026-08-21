@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>กำลังเข้าสู่ระบบด้วย ThaiD...</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="flag-band"></div>
+<header class="site-header">
+  <div class="header-inner">
+    <img class="logo" src="logo.png" alt="ตราสภาวิชาชีพสังคมสงเคราะห์">
+    <div class="header-titles">
+      <div class="th">ระบบฐานข้อมูลนักสังคมสงเคราะห์แห่งชาติ</div>
+      <div class="sub">กำลังยืนยันตัวตนผ่าน ThaiD</div>
+    </div>
+  </div>
+</header>
+<main>
+  <div class="container">
+    <div class="auth-shell">
+      <div class="auth-card text-center" id="statusCard">
+        <div class="spinner" style="width:32px;height:32px;border-color:#1e3a5f33;border-top-color:#1e3a5f;"></div>
+        <p class="mt-16">กำลังตรวจสอบผลการยืนยันตัวตนจาก ThaiD...</p>
+      </div>
+    </div>
+  </div>
+</main>
+<script src="api.js"></script>
+<script>
+  // อ่าน token/role หรือ error จาก query string ที่ Apps Script ส่งกลับมาหลัง ThaiD callback
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('token');
+  const role = params.get('role');
+  const error = params.get('error');
+  const card = document.getElementById('statusCard');
+
+  if (error) {
+    card.innerHTML = `<div class="alert alert-error" style="text-align:right;">${escapeHtml(error)}</div>
+      <a class="btn btn-navy mt-16" href="register.html">กลับไปหน้าเข้าสู่ระบบ</a>`;
+  } else if (token && role === 'citizen') {
+    // เก็บ session token ไว้ใน sessionStorage เพื่อให้หน้า register.html อ่านต่อได้
+    // (จำเป็นต้องใช้ sessionStorage เพราะเป็นการ redirect ข้ามหน้าเว็บจาก ThaiD/Apps Script กลับมา
+    //  ไม่ใช่ Claude artifact — เว็บไซต์นี้ deploy จริงบน GitHub Pages จึงใช้ sessionStorage ได้ตามปกติ)
+    sessionStorage.setItem('swdb_person_token', token);
+    card.innerHTML = `<p>ยืนยันตัวตนด้วย ThaiD สำเร็จ กำลังนำท่านไปหน้าข้อมูลส่วนตัว...</p>`;
+    setTimeout(() => window.location.href = 'register.html', 700);
+  } else if (token && role === 'staff') {
+    sessionStorage.setItem('swdb_admin_token', token);
+    card.innerHTML = `<p>ยืนยันตัวตนด้วย ThaiD สำเร็จ กำลังนำท่านไปแผงควบคุมผู้ดูแลระบบ...</p>`;
+    setTimeout(() => window.location.href = 'admin.html', 700);
+  } else {
+    card.innerHTML = `<div class="alert alert-error" style="text-align:right;">ไม่พบข้อมูลผลการยืนยันตัวตนที่ถูกต้อง</div>
+      <a class="btn btn-navy mt-16" href="register.html">กลับไปหน้าเข้าสู่ระบบ</a>`;
+  }
+</script>
+</body>
+</html>

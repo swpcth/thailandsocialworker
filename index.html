@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ระบบฐานข้อมูลนักสังคมสงเคราะห์แห่งชาติ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+</head>
+<body>
+<div class="flag-band"></div>
+<header class="site-header">
+  <div class="header-inner">
+    <img class="logo" src="logo.png" alt="ตราสภาวิชาชีพสังคมสงเคราะห์">
+    <div class="header-titles">
+      <div class="th">ระบบฐานข้อมูลนักสังคมสงเคราะห์แห่งชาติ</div>
+      <div class="sub">สภาวิชาชีพสังคมสงเคราะห์ · Social Work Professions Council</div>
+    </div>
+    <nav class="main-nav">
+      <a href="index.html" class="active">หน้าหลัก</a>
+      <a href="courses.html">หลักสูตรที่ได้รับรอง</a>
+      <a href="register.html">สำหรับผู้ปฏิบัติงาน</a>
+      <a href="admin.html">ผู้ดูแลระบบ</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="hero-inner">
+    <div class="eyebrow">ระบบสารสนเทศกลาง · Prototype</div>
+    <h1>ตรวจสอบสถานะใบอนุญาตและข้อมูลผู้ปฏิบัติงานด้านสวัสดิการสังคมทั่วประเทศ</h1>
+    <p class="lead">ค้นหาด้วยชื่อ-นามสกุล เลขที่ใบอนุญาต หรือเลขที่สมาชิก เพื่อตรวจสอบสถานะใบอนุญาตประกอบวิชาชีพ (แสดงเฉพาะข้อมูลที่เปิดเผยได้ตามกฎหมายคุ้มครองข้อมูลส่วนบุคคล)</p>
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="พิมพ์ชื่อ-นามสกุล / เลขที่ใบอนุญาต / เลขที่สมาชิก...">
+      <button class="btn btn-primary" id="searchBtn">ค้นหา</button>
+    </div>
+  </div>
+</section>
+
+<main>
+  <div class="container">
+
+    <div id="searchResultsWrap" style="display:none;">
+      <h2 class="section-title">ผลการค้นหา</h2>
+      <p class="section-sub" id="searchResultCount"></p>
+      <div id="searchResults"></div>
+    </div>
+
+    <div id="dashboardWrap">
+      <div class="flex-between">
+        <div>
+          <h2 class="section-title">ภาพรวมทั่วประเทศ</h2>
+          <p class="section-sub">ข้อมูลสรุปจากฐานข้อมูลนักสังคมสงเคราะห์แห่งชาติ อัปเดตแบบเรียลไทม์</p>
+        </div>
+      </div>
+
+      <div id="kpiGrid" class="grid grid-4">
+        <div class="card kpi"><div class="num">-</div><div class="label">ผู้ปฏิบัติงานทั้งหมด</div></div>
+        <div class="card kpi accent-green"><div class="num">-</div><div class="label">อัตราผู้มีใบอนุญาตที่ยังไม่หมดอายุ</div></div>
+        <div class="card kpi accent-gold"><div class="num">-</div><div class="label">ใบอนุญาตใกล้หมดอายุ (90 วัน)</div></div>
+        <div class="card kpi accent-red"><div class="num">-</div><div class="label">กรณีวินัย/จริยธรรมที่บันทึกไว้</div></div>
+      </div>
+
+      <div class="grid grid-2 mt-24">
+        <div class="card chart-card">
+          <h3 style="margin-top:0;">สถานะสมาชิกภาพ/ใบอนุญาต</h3>
+          <canvas id="chartMembership" height="220"></canvas>
+        </div>
+        <div class="card chart-card">
+          <h3 style="margin-top:0;">แยกตามประเภทตำแหน่งงาน</h3>
+          <canvas id="chartPosition" height="220"></canvas>
+        </div>
+      </div>
+
+      <div class="grid grid-2 mt-16">
+        <div class="card chart-card">
+          <h3 style="margin-top:0;">แยกตามประเภทหน่วยงาน</h3>
+          <canvas id="chartAgency" height="220"></canvas>
+        </div>
+        <div class="card chart-card">
+          <h3 style="margin-top:0;">แยกตามสาขาความเชี่ยวชาญ</h3>
+          <canvas id="chartSpecialization" height="220"></canvas>
+        </div>
+      </div>
+
+      <div class="card mt-16">
+        <h3 style="margin-top:0;">จำนวนผู้ปฏิบัติงานรายจังหวัด</h3>
+        <p class="text-soft text-sm mt-8" style="margin-top:-8px;">เรียงจากมากไปน้อย — แผนที่แบบโต้ตอบสามารถเพิ่มได้ในเวอร์ชันถัดไปด้วยไลบรารีแผนที่ประเทศไทย (เช่น GeoJSON 77 จังหวัด)</p>
+        <div class="table-scroll mt-16">
+          <table class="data-table">
+            <thead><tr><th>จังหวัด</th><th>จำนวนผู้ปฏิบัติงาน</th></tr></thead>
+            <tbody id="provinceTableBody"><tr><td colspan="2" class="text-soft">กำลังโหลด...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <div>© สภาวิชาชีพสังคมสงเคราะห์ · ระบบฐานข้อมูลนักสังคมสงเคราะห์แห่งชาติ</div>
+    <div>ข้อเสนอแนะ: thaisocialworkcouncil@gmail.com</div>
+  </div>
+</footer>
+
+<script src="api.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
