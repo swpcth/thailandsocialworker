@@ -19,7 +19,6 @@
     </div>
     <nav class="main-nav">
       <a href="index.html">หน้าหลัก</a>
-      <a href="courses.html">หลักสูตรที่ได้รับรอง</a>
       <a href="register.html">สำหรับผู้ปฏิบัติงาน</a>
       <a href="admin.html" class="active">ผู้ดูแลระบบ</a>
     </nav>
@@ -72,8 +71,7 @@
         <button class="tab-btn active" data-tab="tabDashboard">ภาพรวม</button>
         <button class="tab-btn" data-tab="tabPeople">ข้อมูลผู้ปฏิบัติงาน</button>
         <button class="tab-btn" data-tab="tabDiscipline">วินัย/จริยธรรม</button>
-        <button class="tab-btn" data-tab="tabCourses">หลักสูตรที่ได้รับรอง</button>
-        <button class="tab-btn" data-tab="tabAgencies">หน่วยงาน</button>
+                <button class="tab-btn" data-tab="tabAgencies">หน่วยงาน</button>
         <button class="tab-btn" data-tab="tabAudit">บันทึกการใช้งาน (Audit Log)</button>
       </div>
 
@@ -136,24 +134,83 @@
           <div id="personFormAlert"></div>
           <form id="personForm">
             <input type="hidden" name="PersonID">
+            <h4 style="margin-top:0;">ข้อมูลบุคคล</h4>
             <div class="form-grid">
-              <div class="field"><label>คำนำหน้า</label><input type="text" name="Prefix"></div>
+              <div class="field"><label>คำนำหน้า</label>
+                <select name="Prefix" id="adm_prefixSelect">
+                  <option value="นาย">นาย</option><option value="นาง">นาง</option><option value="นางสาว">นางสาว</option><option value="อื่นๆ">อื่นๆ</option>
+                </select>
+                <input type="text" id="adm_prefixOther" placeholder="โปรดระบุคำนำหน้า" style="display:none; margin-top:8px;">
+              </div>
               <div class="field"><label>ชื่อ *</label><input type="text" name="FirstName" required></div>
               <div class="field"><label>นามสกุล *</label><input type="text" name="LastName" required></div>
               <div class="field"><label>เลขบัตรประชาชน *</label><input type="text" name="NationalID" maxlength="13" required></div>
               <div class="field"><label>เบอร์โทรศัพท์</label><input type="tel" name="Phone"></div>
               <div class="field"><label>อีเมล</label><input type="email" name="Email"></div>
-              <div class="field"><label>จังหวัด</label><input type="text" name="Province"></div>
-              <div class="field"><label>ที่อยู่ปัจจุบัน</label><input type="text" name="CurrentAddress"></div>
+            </div>
+
+            <h4>ที่อยู่ตามทะเบียนบ้าน</h4>
+            <div class="form-grid">
+              <div class="field"><label>บ้านเลขที่</label><input type="text" name="House_No"></div>
+              <div class="field"><label>หมู่บ้าน</label><input type="text" name="House_Village"></div>
+              <div class="field"><label>อาคาร/ชั้น</label><input type="text" name="House_Building"></div>
+              <div class="field"><label>ซอย</label><input type="text" name="House_Soi"></div>
+              <div class="field"><label>ถนน</label><input type="text" name="House_Road"></div>
+            </div>
+            <div class="form-grid">
+              <div class="field"><label>จังหวัด</label><select name="House_Province" class="addr-province" data-group="House"><option value="">เลือกจังหวัด</option></select></div>
+              <div class="field"><label>อำเภอ/เขต</label><select name="House_District" class="addr-district" data-group="House"><option value="">เลือกจังหวัดก่อน</option></select></div>
+              <div class="field"><label>ตำบล/แขวง</label><select name="House_Subdistrict" class="addr-subdistrict" data-group="House"><option value="">เลือกอำเภอก่อน</option></select></div>
+              <div class="field"><label>รหัสไปรษณีย์</label><input type="text" name="House_Zipcode" class="addr-zipcode" data-group="House" readonly></div>
+            </div>
+
+            <h4>
+              ที่อยู่ปัจจุบัน
+              <label class="text-sm text-soft" style="font-weight:400; margin-left:12px;">
+                <input type="checkbox" id="adm_sameAsHouse"> ใช้ที่อยู่เดียวกับทะเบียนบ้าน
+              </label>
+            </h4>
+            <div class="form-grid">
+              <div class="field"><label>บ้านเลขที่</label><input type="text" name="Current_No"></div>
+              <div class="field"><label>หมู่บ้าน</label><input type="text" name="Current_Village"></div>
+              <div class="field"><label>อาคาร/ชั้น</label><input type="text" name="Current_Building"></div>
+              <div class="field"><label>ซอย</label><input type="text" name="Current_Soi"></div>
+              <div class="field"><label>ถนน</label><input type="text" name="Current_Road"></div>
+            </div>
+            <div class="form-grid">
+              <div class="field"><label>จังหวัด</label><select name="Current_Province" class="addr-province" data-group="Current"><option value="">เลือกจังหวัด</option></select></div>
+              <div class="field"><label>อำเภอ/เขต</label><select name="Current_District" class="addr-district" data-group="Current"><option value="">เลือกจังหวัดก่อน</option></select></div>
+              <div class="field"><label>ตำบล/แขวง</label><select name="Current_Subdistrict" class="addr-subdistrict" data-group="Current"><option value="">เลือกอำเภอก่อน</option></select></div>
+              <div class="field"><label>รหัสไปรษณีย์</label><input type="text" name="Current_Zipcode" class="addr-zipcode" data-group="Current" readonly></div>
+            </div>
+
+            <h4>วุฒิการศึกษา</h4>
+            <div class="form-grid">
+              <div class="field"><label>ระดับการศึกษา</label>
+                <select name="EducationLevel" id="adm_eduLevelSelect"><option value="ปริญญาตรี">ปริญญาตรี</option><option value="ปริญญาโท">ปริญญาโท</option><option value="ปริญญาเอก">ปริญญาเอก</option><option value="อนุปริญญา/ปวส.">อนุปริญญา/ปวส.</option><option value="อื่นๆ">อื่นๆ</option></select>
+                <input type="text" id="adm_eduLevelOther" placeholder="โปรดระบุระดับการศึกษา" style="display:none; margin-top:8px;">
+              </div>
+              <div class="field"><label>สาขาวิชา</label><input type="text" name="EducationField"></div>
+              <div class="field"><label>สถาบัน</label><input type="text" name="EducationInstitute"></div>
+              <div class="field"><label>ปีที่จบการศึกษา</label><input type="text" name="EducationYear"></div>
+            </div>
+
+            <h4>การทำงาน</h4>
+            <div class="form-grid">
               <div class="field"><label>ประเภทตำแหน่งงาน</label>
-                <select name="PositionType"><option>นักสังคมสงเคราะห์</option><option>นักพัฒนาสังคม</option><option>นักพัฒนาชุมชน</option><option>อื่นๆ</option></select>
+                <select name="PositionType" id="adm_positionTypeSelect"><option>นักสังคมสงเคราะห์</option><option>นักพัฒนาสังคม</option><option>นักพัฒนาชุมชน</option><option value="อื่นๆ">อื่นๆ</option></select>
+                <input type="text" id="adm_positionTypeOther" placeholder="โปรดระบุประเภทตำแหน่งงาน" style="display:none; margin-top:8px;">
               </div>
               <div class="field"><label>หน่วยงาน/สังกัด</label><input type="text" name="AgencyName"></div>
               <div class="field"><label>ประเภทหน่วยงาน</label>
                 <select name="AgencyType"><option>ภาครัฐ</option><option>ท้องถิ่น</option><option>เอกชน</option><option>NGO</option></select>
               </div>
+              <div class="field"><label>ที่ทำงาน</label><input type="text" name="WorkAddress" placeholder="ที่อยู่สถานที่ทำงาน"></div>
               <div class="field"><label>ความเชี่ยวชาญ</label><input type="text" name="Specializations"></div>
+            </div>
 
+            <h4>สมาชิกภาพ/ใบอนุญาต/สถานะ</h4>
+            <div class="form-grid">
               <div class="field"><label>เลขที่สมาชิก</label><input type="text" name="MembershipNumber"></div>
               <div class="field"><label>สถานะสมาชิกภาพ</label>
                 <select name="MembershipStatus"><option value="active">ปกติ</option><option value="ended">สิ้นสุด</option><option value="none">ไม่เป็นสมาชิก</option></select>
@@ -166,7 +223,6 @@
               </div>
               <div class="field"><label>วันหมดอายุใบอนุญาต</label><input type="date" name="LicenseExpireDate"></div>
 
-              <div class="field"><label>ระดับการศึกษา</label><input type="text" name="EducationLevel"></div>
               <div class="field"><label>สถานะ</label>
                 <select name="Status"><option value="active">ใช้งาน</option><option value="deleted">ปิดใช้งาน</option></select>
               </div>
@@ -214,37 +270,6 @@
             <div class="flex gap-12">
               <button type="submit" class="btn btn-primary">บันทึก</button>
               <button type="button" class="btn btn-ghost" onclick="document.getElementById('disciplineFormWrap').style.display='none'">ยกเลิก</button>
-            </div>
-          </form>
-        </div>
-      </div>
-
-      <!-- ---------- TAB: Courses ---------- -->
-      <div id="tabCourses" class="tab-panel">
-        <div class="flex-between mt-8">
-          <p class="text-soft text-sm mb-0">จัดการหลักสูตร/กิจกรรมที่ได้รับอนุมัติหน่วยคะแนน (แสดงบนหน้าเว็บสาธารณะ)</p>
-          <button class="btn btn-primary btn-sm" onclick="openCourseForm()">+ เพิ่มหลักสูตร</button>
-        </div>
-        <div class="table-scroll mt-16">
-          <table class="data-table">
-            <thead><tr><th>ชื่อหลักสูตร</th><th>ผู้จัด</th><th>หมวด</th><th>หน่วยคะแนน</th><th>วันที่อนุมัติ</th><th></th></tr></thead>
-            <tbody id="coursesTableBody"><tr><td colspan="6" class="text-soft">กำลังโหลด...</td></tr></tbody>
-          </table>
-        </div>
-        <div id="courseFormWrap" style="display:none;" class="card mt-16">
-          <h3 style="margin-top:0;">เพิ่ม/แก้ไขหลักสูตร</h3>
-          <form id="courseForm">
-            <input type="hidden" name="CourseID">
-            <div class="form-grid">
-              <div class="field"><label>ชื่อหลักสูตร *</label><input type="text" name="CourseName" required></div>
-              <div class="field"><label>หน่วยงานผู้จัด</label><input type="text" name="OrganizerName"></div>
-              <div class="field"><label>หมวด</label><input type="text" name="Category"></div>
-              <div class="field"><label>หน่วยคะแนนที่อนุมัติ</label><input type="text" name="ApprovedCredits"></div>
-              <div class="field"><label>วันที่อนุมัติ</label><input type="date" name="ApprovedDate"></div>
-            </div>
-            <div class="flex gap-12">
-              <button type="submit" class="btn btn-primary">บันทึก</button>
-              <button type="button" class="btn btn-ghost" onclick="document.getElementById('courseFormWrap').style.display='none'">ยกเลิก</button>
             </div>
           </form>
         </div>
@@ -303,6 +328,7 @@
   </div>
 </footer>
 
+<script src="thai-address-data.js"></script>
 <script src="api.js"></script>
 <script src="admin.js"></script>
 </body>

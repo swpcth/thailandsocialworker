@@ -116,7 +116,6 @@ function loadAllAdminData() {
   loadAdminDashboard();
   loadPeople();
   loadDiscipline();
-  loadCourses();
   loadAgencies();
   loadAudit();
 }
@@ -173,10 +172,140 @@ document.getElementById('peopleFilter').addEventListener('input', (e) => {
   renderPeopleTable(filtered);
 });
 
+// ---------------- "อื่นๆ" -> ช่องกรอกข้อความเพิ่มเติม (แบบฟอร์มผู้ดูแลระบบ) ----------------
+function wireAdminOtherToggle(selectId, otherId) {
+  const select = document.getElementById(selectId);
+  const other = document.getElementById(otherId);
+  select.addEventListener('change', () => {
+    other.style.display = (select.value === 'อื่นๆ') ? '' : 'none';
+    if (select.value !== 'อื่นๆ') other.value = '';
+  });
+}
+wireAdminOtherToggle('adm_prefixSelect', 'adm_prefixOther');
+wireAdminOtherToggle('adm_eduLevelSelect', 'adm_eduLevelOther');
+wireAdminOtherToggle('adm_positionTypeSelect', 'adm_positionTypeOther');
+
+function applyAdminOtherOverrides(data) {
+  const prefixOther = document.getElementById('adm_prefixOther').value.trim();
+  if (data.Prefix === 'อื่นๆ' && prefixOther) data.Prefix = prefixOther;
+  const eduOther = document.getElementById('adm_eduLevelOther').value.trim();
+  if (data.EducationLevel === 'อื่นๆ' && eduOther) data.EducationLevel = eduOther;
+  const posOther = document.getElementById('adm_positionTypeOther').value.trim();
+  if (data.PositionType === 'อื่นๆ' && posOther) data.PositionType = posOther;
+  return data;
+}
+
+// เลือก "อื่นๆ" อัตโนมัติในช่อง select ถ้าค่าที่บันทึกไว้ไม่ตรงกับตัวเลือกที่มี แล้วเติมค่าจริงในช่องข้อความ "อื่นๆ"
+function setAdminSelectWithOther(selectEl, otherEl, value) {
+  if (!value) { selectEl.value = ''; otherEl.style.display = 'none'; otherEl.value = ''; return; }
+  const known = Array.from(selectEl.options).some(o => o.value === value);
+  if (known) { selectEl.value = value; otherEl.style.display = 'none'; otherEl.value = ''; }
+  else { selectEl.value = 'อื่นๆ'; otherEl.style.display = ''; otherEl.value = value; }
+}
+
+// ---------------- ที่อยู่: จังหวัด/อำเภอ/ตำบล/รหัสไปรษณีย์ แบบ cascading dropdown ----------------
+function initAdminAddressDropdowns(root = document) {
+  const data = window.THAI_ADDRESS;
+  if (!data) return;
+
+  root.querySelectorAll('.addr-province').forEach(sel => {
+    if (sel.dataset.filled) return; // กันเติมตัวเลือกซ้ำ
+    data.provinces.slice().sort((a, b) => a.name.localeCompare(b.name, 'th')).forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.name; opt.dataset.code = p.code; opt.textContent = p.name;
+      sel.appendChild(opt);
+    });
+    sel.dataset.filled = '1';
+  });
+
+  function districtsFor(provinceCode) { return data.districts.filter(d => d.provinceCode === provinceCode); }
+  function subdistrictsFor(districtCode) { return data.subdistricts.filter(s => s.districtCode === districtCode); }
+
+  root.querySelectorAll('.addr-province').forEach(provSel => {
+    if (provSel.dataset.wired) return;
+    provSel.dataset.wired = '1';
+    const group = provSel.dataset.group;
+    const distSel = root.querySelector(`.addr-district[data-group="${group}"]`);
+    const subSel = root.querySelector(`.addr-subdistrict[data-group="${group}"]`);
+    const zipInput = root.querySelector(`.addr-zipcode[data-group="${group}"]`);
+
+    provSel.addEventListener('change', () => {
+      const code = provSel.selectedOptions[0] ? parseInt(provSel.selectedOptions[0].dataset.code, 10) : null;
+      distSel.innerHTML = '<option value="">เลือกอำเภอ/เขต</option>';
+      subSel.innerHTML = '<option value="">เลือกอำเภอก่อน</option>';
+      zipInput.value = '';
+      if (!code) return;
+      districtsFor(code).sort((a, b) => a.name.localeCompare(b.name, 'th')).forEach(d => {
+        const opt = document.createElement('option');
+        opt.value = d.name; opt.dataset.code = d.code; opt.textContent = d.name;
+        distSel.appendChild(opt);
+      });
+    });
+
+    distSel.addEventListener('change', () => {
+      const code = distSel.selectedOptions[0] ? parseInt(distSel.selectedOptions[0].dataset.code, 10) : null;
+      subSel.innerHTML = '<option value="">เลือกตำบล/แขวง</option>';
+      zipInput.value = '';
+      if (!code) return;
+      subdistrictsFor(code).sort((a, b) => a.name.localeCompare(b.name, 'th')).forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.name; opt.dataset.zip = s.zip; opt.textContent = s.name;
+        subSel.appendChild(opt);
+      });
+    });
+
+    subSel.addEventListener('change', () => {
+      const zip = subSel.selectedOptions[0] ? subSel.selectedOptions[0].dataset.zip : '';
+      zipInput.value = zip || '';
+    });
+  });
+}
+initAdminAddressDropdowns();
+
+// เติมค่า select ที่อยู่ (จังหวัด->อำเภอ->ตำบล) แบบไล่ลำดับ โดยจำลอง change event เพื่อให้ตัวเลือกลูกถูกเติมตาม
+function fillAdminAddressGroup(form, group, p) {
+  const provSel = form[`${group}_Province`], distSel = form[`${group}_District`], subSel = form[`${group}_Subdistrict`], zipInput = form[`${group}_Zipcode`];
+  provSel.value = p[`${group}_Province`] || '';
+  provSel.dispatchEvent(new Event('change'));
+  setTimeout(() => {
+    distSel.value = p[`${group}_District`] || '';
+    distSel.dispatchEvent(new Event('change'));
+    setTimeout(() => {
+      subSel.value = p[`${group}_Subdistrict`] || '';
+      subSel.dispatchEvent(new Event('change'));
+      zipInput.value = p[`${group}_Zipcode`] || zipInput.value;
+    }, 0);
+  }, 0);
+}
+
+const adminCurrentAddrFields = ['Current_No', 'Current_Village', 'Current_Building', 'Current_Soi', 'Current_Road'];
+function copyAdminHouseToCurrent() {
+  const form = document.getElementById('personForm');
+  adminCurrentAddrFields.forEach(f => { form[f].value = form[f.replace('Current_', 'House_')].value; });
+  const hProv = form.House_Province, hDist = form.House_District, hSub = form.House_Subdistrict;
+  const cProv = form.Current_Province, cDist = form.Current_District, cSub = form.Current_Subdistrict, cZip = form.Current_Zipcode;
+  cProv.value = hProv.value; cProv.dispatchEvent(new Event('change'));
+  setTimeout(() => {
+    cDist.value = hDist.value; cDist.dispatchEvent(new Event('change'));
+    setTimeout(() => {
+      cSub.value = hSub.value; cSub.dispatchEvent(new Event('change'));
+      cZip.value = form.House_Zipcode.value;
+    }, 0);
+  }, 0);
+}
+document.getElementById('adm_sameAsHouse').addEventListener('change', (e) => {
+  if (e.target.checked) copyAdminHouseToCurrent();
+});
+
 function openPersonForm(personId) {
   const wrap = document.getElementById('personFormWrap');
   const form = document.getElementById('personForm');
   form.reset();
+  ['House_District', 'House_Subdistrict', 'Current_District', 'Current_Subdistrict'].forEach(f => { form[f].innerHTML = '<option value="">เลือกจังหวัดก่อน</option>'; });
+  document.getElementById('adm_prefixOther').style.display = 'none';
+  document.getElementById('adm_eduLevelOther').style.display = 'none';
+  document.getElementById('adm_positionTypeOther').style.display = 'none';
+  document.getElementById('adm_sameAsHouse').checked = false;
   document.getElementById('personFormAlert').innerHTML = '';
   wrap.style.display = '';
   document.getElementById('personFormTitle').textContent = personId ? 'แก้ไขข้อมูลผู้ปฏิบัติงาน' : 'เพิ่มผู้ปฏิบัติงาน';
@@ -184,8 +313,18 @@ function openPersonForm(personId) {
   if (personId) {
     const p = peopleCache.find(x => x.PersonID === personId);
     if (p) {
-      Object.keys(p).forEach(k => { if (form[k]) form[k].value = p[k] instanceof Date ? '' : (p[k] || ''); });
+      const addressFields = new Set(['House_Province', 'House_District', 'House_Subdistrict', 'Current_Province', 'Current_District', 'Current_Subdistrict']);
+      Object.keys(p).forEach(k => {
+        if (form[k] && !addressFields.has(k) && k !== 'Prefix' && k !== 'EducationLevel' && k !== 'PositionType') {
+          form[k].value = p[k] instanceof Date ? '' : (p[k] || '');
+        }
+      });
       form.PersonID.value = personId;
+      setAdminSelectWithOther(form.Prefix, document.getElementById('adm_prefixOther'), p.Prefix || '');
+      setAdminSelectWithOther(form.EducationLevel, document.getElementById('adm_eduLevelOther'), p.EducationLevel || '');
+      setAdminSelectWithOther(form.PositionType, document.getElementById('adm_positionTypeOther'), p.PositionType || '');
+      fillAdminAddressGroup(form, 'House', p);
+      fillAdminAddressGroup(form, 'Current', p);
       ['MembershipExpireDate', 'LicenseExpireDate'].forEach(f => {
         if (p[f]) form[f].value = new Date(p[f]).toISOString().slice(0, 10);
       });
@@ -199,6 +338,8 @@ function closePersonForm() { document.getElementById('personFormWrap').style.dis
 document.getElementById('personForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const data = Object.fromEntries(new FormData(e.target).entries());
+  applyAdminOtherOverrides(data);
+  data.Province = data.Current_Province || data.House_Province || data.Province || '';
   if (!data.PersonID) delete data.PersonID;
 
   let workHistoryEntry = null;
@@ -262,62 +403,6 @@ document.getElementById('disciplineForm').addEventListener('submit', async (e) =
     loadAdminDashboard();
   } catch (err) { toast('บันทึกไม่สำเร็จ: ' + err.message, 'error'); }
 });
-
-// ---------------- Courses ----------------
-let coursesCache = [];
-async function loadCourses() {
-  try {
-    const { courses } = await Api.courses('');
-    coursesCache = courses;
-    document.getElementById('coursesTableBody').innerHTML = courses.length ? courses.map(c => `
-      <tr>
-        <td>${escapeHtml(c.CourseName)}</td><td>${escapeHtml(c.OrganizerName || '-')}</td><td>${escapeHtml(c.Category || '-')}</td>
-        <td>${escapeHtml(c.ApprovedCredits || '-')}</td><td>${fmtDate(c.ApprovedDate)}</td>
-        <td class="flex gap-8">
-          <button class="btn btn-ghost btn-sm" onclick="openCourseForm('${c.CourseID}')">แก้ไข</button>
-          <button class="btn btn-danger btn-sm" onclick="deleteCourse('${c.CourseID}')">ลบ</button>
-        </td>
-      </tr>
-    `).join('') : '<tr><td colspan="6" class="text-soft">ไม่มีข้อมูล</td></tr>';
-  } catch (e) {
-    document.getElementById('coursesTableBody').innerHTML = `<tr><td colspan="6" class="text-soft">โหลดไม่สำเร็จ: ${escapeHtml(e.message)}</td></tr>`;
-  }
-}
-
-function openCourseForm(courseId) {
-  const form = document.getElementById('courseForm');
-  form.reset();
-  document.getElementById('courseFormWrap').style.display = '';
-  if (courseId) {
-    const c = coursesCache.find(x => x.CourseID === courseId);
-    if (c) {
-      Object.keys(c).forEach(k => { if (form[k]) form[k].value = c[k] || ''; });
-      if (c.ApprovedDate) form.ApprovedDate.value = new Date(c.ApprovedDate).toISOString().slice(0, 10);
-    }
-  }
-  document.getElementById('courseFormWrap').scrollIntoView({ behavior: 'smooth' });
-}
-
-document.getElementById('courseForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const data = Object.fromEntries(new FormData(e.target).entries());
-  if (!data.CourseID) delete data.CourseID;
-  try {
-    await Api.adminUpsertCourse(adminToken, data);
-    toast('บันทึกสำเร็จ');
-    document.getElementById('courseFormWrap').style.display = 'none';
-    loadCourses();
-  } catch (err) { toast('บันทึกไม่สำเร็จ: ' + err.message, 'error'); }
-});
-
-async function deleteCourse(courseId) {
-  if (!confirm('ยืนยันการลบหลักสูตรนี้หรือไม่?')) return;
-  try {
-    await Api.adminDeleteCourse(adminToken, courseId);
-    toast('ลบสำเร็จ');
-    loadCourses();
-  } catch (err) { toast('ลบไม่สำเร็จ: ' + err.message, 'error'); }
-}
 
 // ---------------- Agencies ----------------
 let agenciesCache = [];

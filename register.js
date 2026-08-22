@@ -45,6 +45,124 @@ document.getElementById('thaidLoginBtn').addEventListener('click', async () => {
   }
 })();
 
+// ---------------- "อื่นๆ" -> ช่องกรอกข้อความเพิ่มเติม ----------------
+function wireOtherToggle(selectId, otherId) {
+  const select = document.getElementById(selectId);
+  const other = document.getElementById(otherId);
+  select.addEventListener('change', () => {
+    other.style.display = (select.value === 'อื่นๆ') ? '' : 'none';
+    if (select.value !== 'อื่นๆ') other.value = '';
+  });
+}
+wireOtherToggle('prefixSelect', 'prefixOther');
+wireOtherToggle('eduLevelSelect', 'eduLevelOther');
+wireOtherToggle('positionTypeSelect', 'positionTypeOther');
+
+function applyOtherOverrides(data) {
+  const prefixOther = document.getElementById('prefixOther').value.trim();
+  if (data.Prefix === 'อื่นๆ' && prefixOther) data.Prefix = prefixOther;
+  const eduOther = document.getElementById('eduLevelOther').value.trim();
+  if (data.EducationLevel === 'อื่นๆ' && eduOther) data.EducationLevel = eduOther;
+  const posOther = document.getElementById('positionTypeOther').value.trim();
+  if (data.PositionType === 'อื่นๆ' && posOther) data.PositionType = posOther;
+  return data;
+}
+
+// ---------------- ที่อยู่: จังหวัด/อำเภอ/ตำบล/รหัสไปรษณีย์ แบบ cascading dropdown ----------------
+// ใช้ข้อมูลจาก js/thai-address-data.js (77 จังหวัด / 928 อำเภอ / 7,436 ตำบล พร้อมรหัสไปรษณีย์)
+function initAddressDropdowns(root = document) {
+  const data = window.THAI_ADDRESS;
+  if (!data) return;
+
+  root.querySelectorAll('.addr-province').forEach(sel => {
+    data.provinces.slice().sort((a, b) => a.name.localeCompare(b.name, 'th')).forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.name; opt.dataset.code = p.code; opt.textContent = p.name;
+      sel.appendChild(opt);
+    });
+  });
+
+  function districtsFor(provinceCode) { return data.districts.filter(d => d.provinceCode === provinceCode); }
+  function subdistrictsFor(districtCode) { return data.subdistricts.filter(s => s.districtCode === districtCode); }
+
+  root.querySelectorAll('.addr-province').forEach(provSel => {
+    const group = provSel.dataset.group;
+    const distSel = root.querySelector(`.addr-district[data-group="${group}"]`);
+    const subSel = root.querySelector(`.addr-subdistrict[data-group="${group}"]`);
+    const zipInput = root.querySelector(`.addr-zipcode[data-group="${group}"]`);
+
+    provSel.addEventListener('change', () => {
+      const code = provSel.selectedOptions[0] ? parseInt(provSel.selectedOptions[0].dataset.code, 10) : null;
+      distSel.innerHTML = '<option value="">เลือกอำเภอ/เขต</option>';
+      subSel.innerHTML = '<option value="">เลือกอำเภอก่อน</option>';
+      zipInput.value = '';
+      if (!code) return;
+      districtsFor(code).sort((a, b) => a.name.localeCompare(b.name, 'th')).forEach(d => {
+        const opt = document.createElement('option');
+        opt.value = d.name; opt.dataset.code = d.code; opt.textContent = d.name;
+        distSel.appendChild(opt);
+      });
+    });
+
+    distSel.addEventListener('change', () => {
+      const code = distSel.selectedOptions[0] ? parseInt(distSel.selectedOptions[0].dataset.code, 10) : null;
+      subSel.innerHTML = '<option value="">เลือกตำบล/แขวง</option>';
+      zipInput.value = '';
+      if (!code) return;
+      subdistrictsFor(code).sort((a, b) => a.name.localeCompare(b.name, 'th')).forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.name; opt.dataset.zip = s.zip; opt.textContent = s.name;
+        subSel.appendChild(opt);
+      });
+    });
+
+    subSel.addEventListener('change', () => {
+      const zip = subSel.selectedOptions[0] ? subSel.selectedOptions[0].dataset.zip : '';
+      zipInput.value = zip || '';
+    });
+  });
+}
+initAddressDropdowns();
+
+// ---------------- "ใช้ที่อยู่เดียวกับทะเบียนบ้าน" ----------------
+const currentAddrFields = ['Current_No', 'Current_Village', 'Current_Building', 'Current_Soi', 'Current_Road'];
+
+function copyHouseToCurrent() {
+  const form = document.getElementById('registerForm');
+  currentAddrFields.forEach(f => { form[f].value = form[f.replace('Current_', 'House_')].value; });
+  // คัดลอกจังหวัด/อำเภอ/ตำบล โดยจำลองการเลือกผ่าน dropdown เพื่อให้ตัวเลือกลูกถูกเติมตาม
+  const hProv = form.House_Province, hDist = form.House_District, hSub = form.House_Subdistrict;
+  const cProv = form.Current_Province, cDist = form.Current_District, cSub = form.Current_Subdistrict, cZip = form.Current_Zipcode;
+  cProv.value = hProv.value; cProv.dispatchEvent(new Event('change'));
+  setTimeout(() => {
+    cDist.value = hDist.value; cDist.dispatchEvent(new Event('change'));
+    setTimeout(() => {
+      cSub.value = hSub.value; cSub.dispatchEvent(new Event('change'));
+      cZip.value = form.House_Zipcode.value;
+    }, 0);
+  }, 0);
+}
+
+document.getElementById('sameAsHouse').addEventListener('change', (e) => {
+  const fields = [...currentAddrFields, 'Current_Province', 'Current_District', 'Current_Subdistrict', 'Current_Zipcode'];
+  const form = document.getElementById('registerForm');
+  if (e.target.checked) {
+    copyHouseToCurrent();
+    fields.forEach(f => form[f].setAttribute('readonly', 'readonly'));
+    form.Current_Province.disabled = false; // select ใช้ readonly ไม่ได้ ต้องล็อกด้วยวิธีอื่น
+    ['Current_Province', 'Current_District', 'Current_Subdistrict'].forEach(f => form[f].style.pointerEvents = 'none');
+  } else {
+    fields.forEach(f => form[f].removeAttribute('readonly'));
+    ['Current_Province', 'Current_District', 'Current_Subdistrict'].forEach(f => form[f].style.pointerEvents = '');
+  }
+});
+// ถ้าเลือกที่อยู่ทะเบียนบ้านหลังติ๊กถูกไว้แล้ว ให้อัปเดตที่อยู่ปัจจุบันตามไปด้วย
+['House_Province', 'House_District', 'House_Subdistrict'].forEach(name => {
+  document.getElementById('registerForm')[name].addEventListener('change', () => {
+    if (document.getElementById('sameAsHouse').checked) setTimeout(copyHouseToCurrent, 0);
+  });
+});
+
 // ---------------- Register ----------------
 document.getElementById('registerForm').addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -55,6 +173,8 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
   if (p1.length < 8) { alertBox('registerAlert', 'รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร', 'error'); return; }
 
   const data = Object.fromEntries(new FormData(form).entries());
+  applyOtherOverrides(data);
+  data.Province = data.Current_Province || data.House_Province || ''; // ใช้เป็นค่ากลางสำหรับค้นหา/แดชบอร์ดรายจังหวัด
   if (!/^\d{13}$/.test(data.NationalID)) {
     alertBox('registerAlert', 'เลขบัตรประชาชนต้องเป็นตัวเลข 13 หลัก', 'error'); return;
   }
