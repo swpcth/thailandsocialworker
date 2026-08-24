@@ -45,19 +45,22 @@ const Api = (() => {
     courses: (q) => get('courses', { q }),
     workHistory: (personId) => get('workHistory', { personId }),
 
-    register: (data, password) => post('register', { data, password }),
+    register: (data, password, workHistoryEntries) => post('register', { data, password, workHistoryEntries }),
     selfLogin: (nationalId, password) => post('selfLogin', { nationalId, password }),
     updateProfile: (nationalId, password, data) => post('updateProfile', { nationalId, password, data }),
+    prefillLookup: (nationalId) => get('prefillLookup', { nationalId }),
 
     // ThaiD (ระบบพิสูจน์และยืนยันตัวตนทางดิจิทัลภาครัฐ)
     thaidLoginUrl: (role, returnPath) => get('thaidLoginUrl', { role, returnPath: returnPath || '' }),
     personMe: (token) => get('personMe', { token }),
     personUpdateProfileToken: (token, data) => post('personUpdateProfileToken', { token, data }),
 
-    adminLogin: (username, password, otp) => post('adminLogin', { username, password, otp }),
-    adminSetupMfa: (token) => post('adminSetupMfa', { token }),
+    adminLogin: (username, password) => post('adminLogin', { username, password }),
+    adminVerifyLoginOtp: (username, otp) => post('adminVerifyLoginOtp', { username, otp }),
+    adminSetupMfa: (token, email) => post('adminSetupMfa', { token, email }),
     adminConfirmMfa: (token, otp) => post('adminConfirmMfa', { token, otp }),
     adminListPersons: (token) => get('adminList', { token }),
+    adminWhoami: (token) => get('adminWhoami', { token }),
     adminGetPerson: (token, personId) => get('adminGetPerson', { token, personId }),
     adminUpsertPerson: (token, data, workHistoryEntry) => post('adminUpsertPerson', { token, data, workHistoryEntry }),
     adminDeletePerson: (token, personId) => post('adminDeletePerson', { token, personId }),

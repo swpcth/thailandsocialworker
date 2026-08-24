@@ -1,5 +1,3 @@
-const CHART_COLORS = ['#1e3a5f', '#a4231f', '#b8862e', '#1f7a4d', '#5a6472', '#2a4d78', '#c0392b', '#8a6d3b'];
-
 function statusBadge(status, kind) {
   if (kind === 'membership') {
     if (status === 'active') return '<span class="badge badge-green">สมาชิกภาพปกติ</span>';
@@ -66,76 +64,12 @@ async function doSearch() {
 document.getElementById('searchBtn').addEventListener('click', doSearch);
 document.getElementById('searchInput').addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
 
-// โหลดไลบรารี Chart.js อีกครั้งแบบไดนามิก (เผื่อ <script> ใน head โหลดไม่ทันหรือถูกบล็อกโดยเครือข่าย/ตัวบล็อกโฆษณา)
-// ลองสลับไป CDN สำรอง (jsDelivr) ถ้า cdnjs ใช้งานไม่ได้ กันปัญหาเครือข่ายบล็อกบาง CDN
-function ensureChartLoaded(timeoutMs = 6000) {
-  if (window.Chart) return Promise.resolve(true);
-  const sources = [
-    'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js',
-    'https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js'
-  ];
-  function tryLoad(i) {
-    if (window.Chart) return Promise.resolve(true);
-    if (i >= sources.length) return Promise.resolve(false);
-    return new Promise(resolve => {
-      const script = document.createElement('script');
-      script.src = sources[i];
-      const timer = setTimeout(() => resolve(false), timeoutMs);
-      script.onload = () => { clearTimeout(timer); resolve(true); };
-      script.onerror = () => { clearTimeout(timer); resolve(false); };
-      document.head.appendChild(script);
-    }).then(ok => (ok && window.Chart) ? true : tryLoad(i + 1));
-  }
-  return tryLoad(0);
-}
-
-function renderPie(ctx, labels, data) {
-  return new Chart(ctx, {
-    type: 'doughnut',
-    data: { labels, datasets: [{ data, backgroundColor: CHART_COLORS }] },
-    options: { plugins: { legend: { position: 'bottom', labels: { font: { family: 'Sarabun' } } } } }
-  });
-}
-
-function renderBar(ctx, labels, data) {
-  return new Chart(ctx, {
-    type: 'bar',
-    data: { labels, datasets: [{ data, backgroundColor: '#1e3a5f' }] },
-    options: {
-      plugins: { legend: { display: false } },
-      scales: { x: { ticks: { font: { family: 'Sarabun' } } }, y: { beginAtZero: true } }
-    }
-  });
-}
-
-function showChartFallback(canvasEl, message) {
-  const card = canvasEl.closest('.chart-card') || canvasEl.parentElement;
-  const note = document.createElement('p');
-  note.className = 'text-sm text-soft';
-  note.textContent = message;
-  canvasEl.replaceWith(note);
-}
-
-async function renderAllCharts(stats) {
-  const chartOk = await ensureChartLoaded();
-  const chartDefs = [
-    ['chartMembership', () => renderPie(document.getElementById('chartMembership'),
-      ['สมาชิกภาพ + ใบอนุญาต', 'เป็นสมาชิกภาพอย่างเดียว', 'ไม่เป็นทั้งสองอย่าง'],
-      [stats.membershipBreakdown.bothMemberAndLicense, stats.membershipBreakdown.memberOnly, stats.membershipBreakdown.neither])],
-    ['chartPosition', () => renderPie(document.getElementById('chartPosition'), Object.keys(stats.byPosition), Object.values(stats.byPosition))],
-    ['chartAgency', () => renderPie(document.getElementById('chartAgency'), Object.keys(stats.byAgencyType), Object.values(stats.byAgencyType))],
-    ['chartSpecialization', () => renderBar(document.getElementById('chartSpecialization'), Object.keys(stats.bySpecialization), Object.values(stats.bySpecialization))]
-  ];
-
-  for (const [id, render] of chartDefs) {
-    const canvasEl = document.getElementById(id);
-    if (!canvasEl) continue;
-    if (!chartOk) {
-      showChartFallback(canvasEl, 'ไม่สามารถโหลดไลบรารีสร้างกราฟได้ในขณะนี้ (เครือข่ายอาจบล็อก CDN) — ข้อมูลตัวเลขยังถูกต้องตามปกติ');
-      continue;
-    }
-    try { render(); } catch (e) { showChartFallback(canvasEl, 'ไม่สามารถแสดงกราฟนี้ได้: ' + e.message); }
-  }
+function showProvinceDetail(name, count) {
+  document.getElementById('provinceDetailPanel').innerHTML = `
+    <div class="card" style="background:#f2f5f8;">
+      <div class="result-name">${escapeHtml(name)}</div>
+      <div class="result-meta mt-8">${count.toLocaleString('th-TH')} คน ที่ลงทะเบียนในระบบ</div>
+    </div>`;
 }
 
 async function loadDashboard() {
@@ -148,24 +82,22 @@ async function loadDashboard() {
     return;
   }
 
-  // แสดง KPI และตารางก่อน ไม่ให้ปัญหาการโหลดกราฟ (เช่น CDN ถูกบล็อก) มาบังข้อมูลตัวเลขที่โหลดสำเร็จแล้ว
   const kpis = document.querySelectorAll('#kpiGrid .kpi .num');
   kpis[0].textContent = stats.total.toLocaleString('th-TH');
   kpis[1].textContent = stats.licenseRate + '%';
   kpis[2].textContent = stats.expiringLicensesCount.toLocaleString('th-TH');
-  kpis[3].textContent = stats.disciplineCaseCount.toLocaleString('th-TH');
 
+  let byProvince = {};
   try {
-    const { byProvince } = await Api.provinces();
-    const rows = Object.entries(byProvince).sort((a, b) => b[1] - a[1]);
-    document.getElementById('provinceTableBody').innerHTML = rows.map(([prov, n]) =>
-      `<tr><td>${escapeHtml(prov)}</td><td>${n.toLocaleString('th-TH')}</td></tr>`
-    ).join('') || '<tr><td colspan="2" class="text-soft">ยังไม่มีข้อมูล</td></tr>';
-  } catch (e) {
-    document.getElementById('provinceTableBody').innerHTML = `<tr><td colspan="2" class="text-soft">โหลดไม่สำเร็จ: ${escapeHtml(e.message)}</td></tr>`;
-  }
+    byProvince = (await Api.provinces()).byProvince;
+  } catch (e) { /* ปล่อยผ่าน แผนที่จะแสดงเป็นสีอ่อนทั้งหมดแทน */ }
 
-  renderAllCharts(stats);
+  const topList = Object.entries(byProvince).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  document.getElementById('topProvincesList').innerHTML = topList.length
+    ? `<ol style="padding-left:20px; margin:0;">${topList.map(([prov, n]) => `<li class="mt-8">${escapeHtml(prov)} — <strong>${n.toLocaleString('th-TH')}</strong> คน</li>`).join('')}</ol>`
+    : '<p class="text-sm text-soft">ยังไม่มีข้อมูล</p>';
+
+  renderThailandMap('publicMap', byProvince, { height: 480, onProvinceClick: showProvinceDetail });
 }
 
 loadDashboard();

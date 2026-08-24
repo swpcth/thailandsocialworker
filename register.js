@@ -57,6 +57,14 @@ function wireOtherToggle(selectId, otherId) {
 wireOtherToggle('prefixSelect', 'prefixOther');
 wireOtherToggle('eduLevelSelect', 'eduLevelOther');
 wireOtherToggle('positionTypeSelect', 'positionTypeOther');
+wireOtherToggle('practiceStatusSelect', 'practiceStatusOther');
+
+function setSelectWithOther(selectEl, otherEl, value) {
+  if (!value) { selectEl.value = ''; otherEl.style.display = 'none'; otherEl.value = ''; return; }
+  const known = Array.from(selectEl.options).some(o => o.value === value);
+  if (known) { selectEl.value = value; otherEl.style.display = 'none'; otherEl.value = ''; }
+  else { selectEl.value = 'อื่นๆ'; otherEl.style.display = ''; otherEl.value = value; }
+}
 
 function applyOtherOverrides(data) {
   const prefixOther = document.getElementById('prefixOther').value.trim();
@@ -65,6 +73,8 @@ function applyOtherOverrides(data) {
   if (data.EducationLevel === 'อื่นๆ' && eduOther) data.EducationLevel = eduOther;
   const posOther = document.getElementById('positionTypeOther').value.trim();
   if (data.PositionType === 'อื่นๆ' && posOther) data.PositionType = posOther;
+  const practiceOther = document.getElementById('practiceStatusOther').value.trim();
+  if (data.PracticeStatus === 'อื่นๆ' && practiceOther) data.PracticeStatus = practiceOther;
   return data;
 }
 
@@ -163,6 +173,114 @@ document.getElementById('sameAsHouse').addEventListener('change', (e) => {
   });
 });
 
+// ---------------- ประวัติการทำงาน (หลายช่วงเวลา) ----------------
+let workHistoryRowCount = 0;
+function addWorkHistoryRow(prefill) {
+  const id = 'wh' + (workHistoryRowCount++);
+  const wrap = document.createElement('div');
+  wrap.className = 'card mt-8';
+  wrap.dataset.rowId = id;
+  wrap.innerHTML = `
+    <div class="form-grid">
+      <div class="field"><label>หน่วยงาน</label><input type="text" class="wh-agency" value="${escapeHtml(prefill && prefill.AgencyName || '')}"></div>
+      <div class="field"><label>ตำแหน่ง</label><input type="text" class="wh-position" value="${escapeHtml(prefill && prefill.Position || '')}"></div>
+      <div class="field"><label>เริ่มงาน</label><input type="date" class="wh-start" value="${toDateInputValue(prefill && prefill.StartDate)}"></div>
+      <div class="field"><label>สิ้นสุด</label><input type="date" class="wh-end" value="${toDateInputValue(prefill && prefill.EndDate)}"></div>
+    </div>
+    <button type="button" class="btn btn-ghost btn-sm" onclick="this.closest('[data-row-id]').remove()">ลบแถวนี้</button>
+  `;
+  document.getElementById('workHistoryRows').appendChild(wrap);
+}
+document.getElementById('addWorkHistoryRow').addEventListener('click', () => addWorkHistoryRow());
+
+function clearWorkHistoryRows() { document.getElementById('workHistoryRows').innerHTML = ''; }
+
+function collectWorkHistoryEntries() {
+  return Array.from(document.querySelectorAll('#workHistoryRows [data-row-id]')).map(row => ({
+    AgencyName: row.querySelector('.wh-agency').value.trim(),
+    Position: row.querySelector('.wh-position').value.trim(),
+    StartDate: row.querySelector('.wh-start').value,
+    EndDate: row.querySelector('.wh-end').value
+  })).filter(w => w.AgencyName);
+}
+
+function toDateInputValue(v) {
+  if (!v) return '';
+  const d = new Date(v);
+  return isNaN(d) ? '' : d.toISOString().slice(0, 10);
+}
+
+// ---------------- ดึงข้อมูลจากสภาฯ (สำหรับผู้ที่เคยเป็นสมาชิก/มีข้อมูลอยู่แล้ว) ----------------
+let prefillCache = null; // แคชผลลัพธ์ไว้ ไม่ต้องยิง API ซ้ำทุกปุ่มที่กด
+
+async function fetchPrefill() {
+  const nationalId = document.getElementById('regNationalId').value.trim();
+  if (!/^\d{13}$/.test(nationalId)) {
+    toast('กรุณากรอกเลขบัตรประชาชน 13 หลักในข้อ 1 ก่อน', 'error');
+    return null;
+  }
+  if (prefillCache && prefillCache.nationalId === nationalId) return prefillCache.result;
+  const result = await Api.prefillLookup(nationalId);
+  prefillCache = { nationalId, result };
+  return result;
+}
+
+const form = () => document.getElementById('registerForm');
+
+function fillAddressGroupFromData(group, p) {
+  const f = form();
+  const provSel = f[`${group}_Province`], distSel = f[`${group}_District`], subSel = f[`${group}_Subdistrict`], zipInput = f[`${group}_Zipcode`];
+  provSel.value = p[`${group}_Province`] || '';
+  provSel.dispatchEvent(new Event('change'));
+  setTimeout(() => {
+    distSel.value = p[`${group}_District`] || '';
+    distSel.dispatchEvent(new Event('change'));
+    setTimeout(() => {
+      subSel.value = p[`${group}_Subdistrict`] || '';
+      subSel.dispatchEvent(new Event('change'));
+      zipInput.value = p[`${group}_Zipcode`] || zipInput.value;
+    }, 0);
+  }, 0);
+}
+
+async function pullFromCouncil(section) {
+  const data = await fetchPrefill();
+  if (data === null) return;
+  if (!data.found) { toast('ไม่พบข้อมูลที่เคยลงทะเบียนไว้กับสภาฯ สำหรับเลขบัตรประชาชนนี้ กรุณากรอกข้อมูลด้วยตนเอง', 'error'); return; }
+  const p = data.person, f = form();
+
+  if (section === 'address') {
+    ['House_No', 'House_Village', 'House_Building', 'House_Soi', 'House_Road', 'Current_No', 'Current_Village', 'Current_Building', 'Current_Soi', 'Current_Road', 'WorkAddress'].forEach(k => { if (f[k]) f[k].value = p[k] || ''; });
+    fillAddressGroupFromData('House', p);
+    fillAddressGroupFromData('Current', p);
+  } else if (section === 'education') {
+    setSelectWithOther(document.getElementById('eduLevelSelect'), document.getElementById('eduLevelOther'), p.EducationLevel || '');
+    ['EducationField', 'EducationInstitute', 'EducationYear'].forEach(k => { f[k].value = p[k] || ''; });
+  } else if (section === 'work') {
+    setSelectWithOther(document.getElementById('positionTypeSelect'), document.getElementById('positionTypeOther'), p.PositionType || '');
+    f.AgencyName.value = p.AgencyName || '';
+    f.AgencyType.value = p.AgencyType || f.AgencyType.value;
+    clearWorkHistoryRows();
+    (data.workHistory || []).forEach(w => addWorkHistoryRow(w));
+  } else if (section === 'membership') {
+    ['MembershipNumber', 'MembershipType'].forEach(k => { f[k].value = p[k] || ''; });
+    f.MembershipIssueDate.value = toDateInputValue(p.MembershipIssueDate);
+    f.MembershipExpireDate.value = toDateInputValue(p.MembershipExpireDate);
+    f.MembershipStatus.value = p.MembershipStatus || 'none';
+  } else if (section === 'license') {
+    f.LicenseNumber.value = p.LicenseNumber || '';
+    f.LicenseIssueDate.value = toDateInputValue(p.LicenseIssueDate);
+    f.LicenseExpireDate.value = toDateInputValue(p.LicenseExpireDate);
+  } else if (section === 'specialization') {
+    f.Specializations.value = p.Specializations || '';
+  }
+  toast('ดึงข้อมูลจากสภาฯ สำเร็จ กรุณาตรวจสอบความถูกต้องอีกครั้ง');
+}
+
+document.querySelectorAll('.pull-council-btn').forEach(btn => {
+  btn.addEventListener('click', () => pullFromCouncil(btn.dataset.section));
+});
+
 // ---------------- Register ----------------
 document.getElementById('registerForm').addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -182,9 +300,12 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
   const btn = document.getElementById('registerBtn');
   btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> กำลังลงทะเบียน...';
   try {
-    await Api.register(data, p1);
+    await Api.register(data, p1, collectWorkHistoryEntries());
     toast('ลงทะเบียนสำเร็จ กรุณาเข้าสู่ระบบ');
     form.reset();
+    clearWorkHistoryRows();
+    prefillCache = null;
+    ['prefixOther', 'eduLevelOther', 'positionTypeOther', 'practiceStatusOther'].forEach(id => { document.getElementById(id).style.display = 'none'; });
     showView('loginView');
   } catch (err) {
     const msg = err.message === 'national_id_already_registered'

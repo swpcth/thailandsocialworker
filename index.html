@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
 </head>
 <body>
 <div class="flag-band"></div>
@@ -51,47 +51,26 @@
       <div class="flex-between">
         <div>
           <h2 class="section-title">ภาพรวมทั่วประเทศ</h2>
-          <p class="section-sub">ข้อมูลสรุปจากฐานข้อมูลนักสังคมสงเคราะห์แห่งชาติ อัปเดตแบบเรียลไทม์</p>
+          <p class="section-sub">สรุปข้อมูลสำหรับประชาชนทั่วไป — ข้อมูลเชิงลึก แดชบอร์ดฉบับเต็ม และรายงานมาตรฐาน สำหรับเจ้าหน้าที่ ดูได้ในระบบผู้ดูแล</p>
         </div>
       </div>
 
-      <div id="kpiGrid" class="grid grid-4">
+      <div id="kpiGrid" class="grid grid-3">
         <div class="card kpi"><div class="num">-</div><div class="label">ผู้ปฏิบัติงานทั้งหมด</div></div>
         <div class="card kpi accent-green"><div class="num">-</div><div class="label">อัตราผู้มีใบอนุญาตที่ยังไม่หมดอายุ</div></div>
         <div class="card kpi accent-gold"><div class="num">-</div><div class="label">ใบอนุญาตใกล้หมดอายุ (90 วัน)</div></div>
-        <div class="card kpi accent-red"><div class="num">-</div><div class="label">กรณีวินัย/จริยธรรมที่บันทึกไว้</div></div>
       </div>
 
-      <div class="grid grid-2 mt-24">
-        <div class="card chart-card">
-          <h3 style="margin-top:0;">สถานะสมาชิกภาพ/ใบอนุญาต</h3>
-          <canvas id="chartMembership" height="220"></canvas>
+      <div class="grid mt-24" style="grid-template-columns: 2fr 1fr; gap:16px;">
+        <div class="card">
+          <h3 style="margin-top:0;">แผนที่ความหนาแน่นผู้ปฏิบัติงานรายจังหวัด</h3>
+          <p class="text-sm text-soft" style="margin-top:-8px;">คลิกที่จังหวัดเพื่อดูจำนวนผู้ปฏิบัติงาน</p>
+          <div id="publicMap" style="min-height:480px;"></div>
         </div>
-        <div class="card chart-card">
-          <h3 style="margin-top:0;">แยกตามประเภทตำแหน่งงาน</h3>
-          <canvas id="chartPosition" height="220"></canvas>
-        </div>
-      </div>
-
-      <div class="grid grid-2 mt-16">
-        <div class="card chart-card">
-          <h3 style="margin-top:0;">แยกตามประเภทหน่วยงาน</h3>
-          <canvas id="chartAgency" height="220"></canvas>
-        </div>
-        <div class="card chart-card">
-          <h3 style="margin-top:0;">แยกตามสาขาความเชี่ยวชาญ</h3>
-          <canvas id="chartSpecialization" height="220"></canvas>
-        </div>
-      </div>
-
-      <div class="card mt-16">
-        <h3 style="margin-top:0;">จำนวนผู้ปฏิบัติงานรายจังหวัด</h3>
-        <p class="text-soft text-sm mt-8" style="margin-top:-8px;">เรียงจากมากไปน้อย — แผนที่แบบโต้ตอบสามารถเพิ่มได้ในเวอร์ชันถัดไปด้วยไลบรารีแผนที่ประเทศไทย (เช่น GeoJSON 77 จังหวัด)</p>
-        <div class="table-scroll mt-16">
-          <table class="data-table">
-            <thead><tr><th>จังหวัด</th><th>จำนวนผู้ปฏิบัติงาน</th></tr></thead>
-            <tbody id="provinceTableBody"><tr><td colspan="2" class="text-soft">กำลังโหลด...</td></tr></tbody>
-          </table>
+        <div class="card">
+          <h3 style="margin-top:0;">5 จังหวัดที่มีผู้ปฏิบัติงานมากที่สุด</h3>
+          <div id="topProvincesList"><p class="text-sm text-soft">กำลังโหลด...</p></div>
+          <div id="provinceDetailPanel" class="mt-16"></div>
         </div>
       </div>
 
@@ -107,6 +86,7 @@
 </footer>
 
 <script src="api.js"></script>
+<script src="thailand-map.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

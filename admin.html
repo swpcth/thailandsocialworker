@@ -6,7 +6,8 @@
 <title>ผู้ดูแลระบบ — ระบบฐานข้อมูลนักสังคมสงเคราะห์แห่งชาติ</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
 </head>
 <body>
 <div class="flag-band"></div>
@@ -44,15 +45,23 @@
             <div style="flex:1; height:1px; background:var(--line);"></div>
           </div>
 
-          <div id="adminLoginAlert"></div>
-          <div class="field"><label>ชื่อผู้ใช้</label><input type="text" id="adminUsername"></div>
-          <div class="field"><label>รหัสผ่าน</label><input type="password" id="adminPassword"></div>
-          <div class="field">
-            <label>รหัส OTP <span class="text-soft">(กรอกเฉพาะกรณีเปิดใช้งาน MFA แล้ว)</span></label>
-            <input type="text" id="adminOtp" maxlength="6" placeholder="6 หลักจากแอป Authenticator">
+          <!-- ขั้นที่ 1: ชื่อผู้ใช้ + รหัสผ่าน -->
+          <div id="adminPasswordStep">
+            <div id="adminLoginAlert"></div>
+            <div class="field"><label>ชื่อผู้ใช้</label><input type="text" id="adminUsername"></div>
+            <div class="field"><label>รหัสผ่าน</label><input type="password" id="adminPassword"></div>
+            <button class="btn btn-navy" style="width:100%;" id="adminLoginBtn">เข้าสู่ระบบด้วยรหัสผ่าน</button>
+            <p class="text-sm text-soft mt-16">บัญชีเริ่มต้นถูกสร้างไว้ตอนติดตั้งระบบ (ดูใน Apps Script Execution log) กรุณาเปลี่ยนรหัสผ่านทันทีหลังติดตั้ง</p>
           </div>
-          <button class="btn btn-navy" style="width:100%;" id="adminLoginBtn">เข้าสู่ระบบด้วยรหัสผ่าน</button>
-          <p class="text-sm text-soft mt-16">บัญชีเริ่มต้นถูกสร้างไว้ตอนติดตั้งระบบ (ดูใน Apps Script Execution log) กรุณาเปลี่ยนรหัสผ่านทันทีหลังติดตั้ง</p>
+
+          <!-- ขั้นที่ 2: กรอกรหัส OTP ที่ส่งไปยังอีเมล (แสดงเฉพาะเมื่อบัญชีเปิดใช้งาน MFA แล้ว) -->
+          <div id="adminOtpStep" style="display:none;">
+            <div id="adminOtpAlert"></div>
+            <p class="text-sm">ระบบส่งรหัส OTP ไปยังอีเมล <strong id="adminOtpMaskedEmail"></strong> แล้ว (อายุรหัส 5 นาที)</p>
+            <div class="field"><label>รหัส OTP</label><input type="text" id="adminOtpInput" maxlength="6" placeholder="กรอกรหัส 6 หลักจากอีเมล"></div>
+            <button class="btn btn-navy" style="width:100%;" id="adminVerifyOtpBtn">ยืนยันรหัส OTP</button>
+            <button class="btn btn-ghost btn-sm mt-8" style="width:100%;" id="adminBackToPasswordBtn">← กลับไปกรอกรหัสผ่านใหม่</button>
+          </div>
         </div>
       </div>
     </div>
@@ -69,13 +78,14 @@
 
       <div class="tabs">
         <button class="tab-btn active" data-tab="tabDashboard">ภาพรวม</button>
+        <button class="tab-btn" data-tab="tabReports">รายงาน</button>
         <button class="tab-btn" data-tab="tabPeople">ข้อมูลผู้ปฏิบัติงาน</button>
-        <button class="tab-btn" data-tab="tabDiscipline">วินัย/จริยธรรม</button>
-                <button class="tab-btn" data-tab="tabAgencies">หน่วยงาน</button>
+        <button class="tab-btn" id="tabBtnDiscipline" data-tab="tabDiscipline">วินัย/จริยธรรม</button>
+        <button class="tab-btn" data-tab="tabAgencies">หน่วยงาน</button>
         <button class="tab-btn" data-tab="tabAudit">บันทึกการใช้งาน (Audit Log)</button>
       </div>
 
-      <!-- ---------- TAB: Dashboard ---------- -->
+      <!-- ---------- TAB: Dashboard (ฉบับเต็มสำหรับเจ้าหน้าที่) ---------- -->
       <div id="tabDashboard" class="tab-panel active">
         <div class="grid grid-4" id="adminKpi">
           <div class="card kpi"><div class="num">-</div><div class="label">ผู้ปฏิบัติงานทั้งหมด</div></div>
@@ -83,21 +93,62 @@
           <div class="card kpi accent-gold"><div class="num">-</div><div class="label">ใบอนุญาตใกล้หมดอายุ</div></div>
           <div class="card kpi accent-red"><div class="num">-</div><div class="label">กรณีวินัย</div></div>
         </div>
+        <p class="text-sm text-soft mt-8" id="momText">กำลังคำนวณแนวโน้ม...</p>
+
+        <div class="grid mt-16" style="grid-template-columns: 2fr 1fr; gap:16px;">
+          <div class="card">
+            <h3 style="margin-top:0;">แผนที่ความหนาแน่นผู้ปฏิบัติงานรายจังหวัด (คลิกเพื่อกรองตาราง)</h3>
+            <div id="adminMap" style="min-height:480px;"></div>
+          </div>
+          <div class="card">
+            <h3 style="margin-top:0;">อันดับจังหวัด</h3>
+            <div class="flex gap-8 mb-0" style="margin-bottom:8px;">
+              <button class="btn btn-ghost btn-sm rank-toggle active" data-rank="top">มากสุด 5</button>
+              <button class="btn btn-ghost btn-sm rank-toggle" data-rank="bottom">น้อยสุด 5</button>
+            </div>
+            <div id="provinceRankingList"></div>
+            <h3 class="mt-24">หน่วยงานที่มีผู้ปฏิบัติงานมากสุด</h3>
+            <div id="agencyRankingList"></div>
+          </div>
+        </div>
+
+        <div class="grid grid-2 mt-16">
+          <div class="card chart-card">
+            <h3 style="margin-top:0;">แยกตามประเภทตำแหน่งงาน</h3>
+            <canvas id="chartPosition" height="220"></canvas>
+          </div>
+          <div class="card chart-card">
+            <h3 style="margin-top:0;">แยกตามประเภทหน่วยงาน</h3>
+            <canvas id="chartAgency" height="220"></canvas>
+          </div>
+        </div>
+        <div class="grid grid-2 mt-16">
+          <div class="card chart-card">
+            <h3 style="margin-top:0;">แยกตามสาขาความเชี่ยวชาญ</h3>
+            <canvas id="chartSpecialization" height="220"></canvas>
+          </div>
+          <div class="card chart-card">
+            <h3 style="margin-top:0;">แนวโน้มการลงทะเบียนใหม่ (12 เดือนล่าสุด)</h3>
+            <canvas id="chartTrend" height="220"></canvas>
+          </div>
+        </div>
+
         <div class="card mt-16">
           <div class="flex-between">
-            <h3 style="margin-top:0;">ความปลอดภัยบัญชีของฉัน — การยืนยันตัวตนหลายปัจจัย (MFA)</h3>
+            <h3 style="margin-top:0;">ความปลอดภัยบัญชีของฉัน — การยืนยันตัวตนหลายปัจจัย (MFA ผ่านอีเมล)</h3>
             <button class="btn btn-outline btn-sm" id="mfaSetupBtn">ตั้งค่า MFA</button>
           </div>
           <p class="text-sm text-soft" id="mfaStatusText">กำลังตรวจสอบสถานะ...</p>
           <div id="mfaSetupPanel" style="display:none;">
             <div class="grid grid-2">
               <div>
-                <p class="text-sm">สแกน QR นี้ด้วยแอป Authenticator (เช่น Google Authenticator) หรือกรอกรหัสลับด้วยตนเอง:</p>
-                <div id="mfaQr" style="background:#fff; padding:12px; display:inline-block; border:1px solid var(--line);"></div>
-                <p class="text-sm mt-8"><code id="mfaSecretText"></code></p>
+                <p class="text-sm">กรอกอีเมลที่ต้องการใช้รับรหัส OTP ทุกครั้งที่เข้าสู่ระบบด้วยรหัสผ่าน:</p>
+                <div class="field"><label>อีเมล</label><input type="email" id="mfaEmailInput" placeholder="name@example.com"></div>
+                <button class="btn btn-outline btn-sm" id="mfaSendOtpBtn">ส่งรหัส OTP ไปยังอีเมลนี้</button>
+                <p class="text-sm text-soft mt-8" id="mfaSetupAlert"></p>
               </div>
               <div>
-                <div class="field"><label>กรอกรหัส 6 หลักจากแอปเพื่อยืนยัน</label><input type="text" id="mfaConfirmOtp" maxlength="6"></div>
+                <div class="field"><label>กรอกรหัส OTP ที่ได้รับทางอีเมลเพื่อยืนยัน</label><input type="text" id="mfaConfirmOtp" maxlength="6" placeholder="รหัส 6 หลัก"></div>
                 <button class="btn btn-primary btn-sm" id="mfaConfirmBtn">ยืนยันและเปิดใช้งาน MFA</button>
               </div>
             </div>
@@ -113,6 +164,25 @@
             </table>
           </div>
         </div>
+      </div>
+
+      <!-- ---------- TAB: รายงาน (Standard Reports) ---------- -->
+      <div id="tabReports" class="tab-panel">
+        <p class="text-sm text-soft">เลือกประเภทรายงานที่ต้องการดู — ข้อมูลคำนวณจากฐานข้อมูลปัจจุบันแบบเรียลไทม์</p>
+        <select id="reportSelect" style="max-width:420px;">
+          <option value="overview">1. สรุปภาพรวมทั่วประเทศ</option>
+          <option value="area">2. รายงานเชิงพื้นที่ (จังหวัด/ภูมิภาค)</option>
+          <option value="agency">3. รายงานตามประเภทหน่วยงาน/สังกัด</option>
+          <option value="position">4. รายงานตามประเภทตำแหน่งงาน</option>
+          <option value="license">5. รายงานสถานะใบอนุญาต</option>
+          <option value="membership">6. รายงานสถานะสมาชิกภาพ</option>
+          <option value="specialization">7. รายงานความเชี่ยวชาญ/สาขาการปฏิบัติงาน</option>
+          <option value="education">8. รายงานวุฒิการศึกษา</option>
+          <option value="discipline">9. รายงานประวัติวินัย/จริยธรรม (จำกัดสิทธิ์)</option>
+          <option value="trend">10. รายงานแนวโน้มเชิงเวลา (Trend Analysis)</option>
+        </select>
+        <p class="text-sm text-soft mt-8">รายงานที่ 11 (การใช้งานระบบ/Audit) ดูได้ที่แท็บ "บันทึกการใช้งาน (Audit Log)"</p>
+        <div id="reportContent" class="mt-16"></div>
       </div>
 
       <!-- ---------- TAB: People ---------- -->
@@ -330,6 +400,8 @@
 
 <script src="thai-address-data.js"></script>
 <script src="api.js"></script>
+<script src="charts.js"></script>
+<script src="thailand-map.js"></script>
 <script src="admin.js"></script>
 </body>
 </html>
