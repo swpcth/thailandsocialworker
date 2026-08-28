@@ -68,6 +68,7 @@ const Api = (() => {
     adminUpsertDiscipline: (token, data) => post('adminUpsertDiscipline', { token, data }),
     adminListAudit: (token) => get('adminAudit', { token }),
     adminAgencies: () => get('adminAgencies'),
+    universities: () => get('universities'),
     adminUpsertAgency: (token, data) => post('adminUpsertAgency', { token, data }),
     adminUpsertCourse: (token, data) => post('adminUpsertCourse', { token, data }),
     adminDeleteCourse: (token, courseId) => post('adminDeleteCourse', { token, courseId }),

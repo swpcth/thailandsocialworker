@@ -280,15 +280,43 @@ async function renderReport(type) {
 
   if (type === 'overview') {
     const mb = stats.membershipBreakdown;
+    const topProvinces = Object.entries(latestProvinceCache || {}).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    const topAgencies = Object.entries(stats.byAgencyName || {}).sort((a, b) => b[1] - a[1]).slice(0, 5);
     el.innerHTML = `
-      <div class="grid grid-3">
+      <div class="grid grid-4">
         <div class="card kpi"><div class="num">${stats.total.toLocaleString('th-TH')}</div><div class="label">ผู้ปฏิบัติงานทั้งหมด</div></div>
         <div class="card kpi accent-green"><div class="num">${stats.licenseRate}%</div><div class="label">อัตรามีใบอนุญาต</div></div>
         <div class="card kpi accent-gold"><div class="num">${stats.expiringLicensesCount}</div><div class="label">ใบอนุญาตใกล้หมดอายุ</div></div>
+        <div class="card kpi accent-red"><div class="num">${(stats.disciplineCaseCount || 0).toLocaleString('th-TH')}</div><div class="label">กรณีวินัย/จริยธรรม</div></div>
       </div>
+      <p class="text-sm text-soft mt-8">${escapeHtml(document.getElementById('momText') ? document.getElementById('momText').textContent : '')}</p>
+
       <div class="card mt-16"><h3 style="margin-top:0;">สถานะสมาชิกภาพ/ใบอนุญาตร่วมกัน</h3>
       ${renderCountTable({ 'สมาชิกภาพ + มีใบอนุญาต': mb.bothMemberAndLicense, 'สมาชิกภาพอย่างเดียว': mb.memberOnly, 'ไม่เป็นทั้งสองอย่าง': mb.neither }, ['กลุ่ม', 'จำนวน'])}
+      </div>
+
+      <div class="card mt-16"><h3 style="margin-top:0;">แผนที่ความหนาแน่นรายจังหวัด</h3><div id="reportMap" style="min-height:420px;"></div></div>
+
+      <div class="grid grid-2 mt-16">
+        <div class="card"><h3 style="margin-top:0;">5 จังหวัดที่มีผู้ปฏิบัติงานมากที่สุด</h3>${renderCountTable(Object.fromEntries(topProvinces), ['จังหวัด', 'จำนวน'])}</div>
+        <div class="card"><h3 style="margin-top:0;">5 หน่วยงานที่มีผู้ปฏิบัติงานมากที่สุด</h3>${renderCountTable(Object.fromEntries(topAgencies), ['หน่วยงาน', 'จำนวน'])}</div>
+      </div>
+
+      <div class="grid grid-2 mt-16">
+        <div class="card"><h3 style="margin-top:0;">แยกตามประเภทตำแหน่งงาน</h3>${renderCountTable(stats.byPosition || {}, ['ตำแหน่งงาน', 'จำนวน'])}</div>
+        <div class="card"><h3 style="margin-top:0;">แยกตามประเภทหน่วยงาน</h3>${renderCountTable(stats.byAgencyType || {}, ['ประเภทหน่วยงาน', 'จำนวน'])}</div>
+      </div>
+      <div class="card mt-16"><h3 style="margin-top:0;">แยกตามความเชี่ยวชาญ</h3>${renderCountTable(stats.bySpecialization || {}, ['ความเชี่ยวชาญ', 'จำนวน'])}</div>
+
+      <div class="card mt-16"><h3 style="margin-top:0;">แนวโน้มการลงทะเบียนใหม่ (6 เดือนล่าสุด)</h3>
+      ${(() => {
+        const t = stats.registrationTrend || { months: [], counts: [] };
+        const last6 = {};
+        t.months.slice(-6).forEach((m, i) => { last6[m] = t.counts.slice(-6)[i]; });
+        return renderCountTable(last6, ['เดือน', 'จำนวนลงทะเบียนใหม่']);
+      })()}
       </div>`;
+    renderThailandMap('reportMap', latestProvinceCache || {}, { height: 420 });
   } else if (type === 'area') {
     const byRegion = {};
     Object.entries(latestProvinceCache || {}).forEach(([prov, n]) => {
@@ -320,7 +348,8 @@ async function renderReport(type) {
     el.innerHTML = `<div class="card"><h3 style="margin-top:0;">แยกตามความเชี่ยวชาญ</h3>${renderCountTable(stats.bySpecialization || {}, ['ความเชี่ยวชาญ', 'จำนวน'])}</div>`;
   } else if (type === 'education') {
     el.innerHTML = `<div class="card"><h3 style="margin-top:0;">แยกตามระดับการศึกษา</h3>${renderCountTable(groupBy(people, p => p.EducationLevel), ['ระดับการศึกษา', 'จำนวน'])}</div>
-      <div class="card mt-16"><h3 style="margin-top:0;">แยกตามสาขาวิชา</h3>${renderCountTable(groupBy(people, p => p.EducationField), ['สาขาวิชา', 'จำนวน'])}</div>`;
+      <div class="card mt-16"><h3 style="margin-top:0;">แยกตามสาขาวิชา</h3>${renderCountTable(groupBy(people, p => p.EducationField), ['สาขาวิชา', 'จำนวน'])}</div>
+      <div class="card mt-16"><h3 style="margin-top:0;">แยกตามสถาบัน/มหาวิทยาลัย</h3>${renderCountTable(groupBy(people, p => p.EducationInstitute), ['สถาบัน/มหาวิทยาลัย', 'จำนวน'])}</div>`;
   } else if (type === 'discipline') {
     if (adminRole !== 'superadmin') { el.innerHTML = '<div class="alert alert-error">รายงานนี้จำกัดสิทธิ์เฉพาะผู้ดูแลระบบระดับสูง (superadmin)</div>'; return; }
     try {
@@ -339,6 +368,40 @@ async function renderReport(type) {
 }
 
 document.getElementById('reportSelect').addEventListener('change', (e) => renderReport(e.target.value));
+
+// ---------------- ส่งออกรายงานปัจจุบันเป็น Excel (ใช้ได้กับรายงานทุกประเภทที่แสดงอยู่) ----------------
+document.getElementById('exportReportBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('exportReportBtn');
+  const container = document.getElementById('reportContent');
+  const tables = container.querySelectorAll('table.data-table');
+  if (!tables.length) { toast('ไม่มีข้อมูลตารางให้ส่งออกในรายงานนี้', 'error'); return; }
+
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> กำลังเตรียมไฟล์...';
+  try {
+    const ok = await ensureXlsxLoaded();
+    if (!ok) throw new Error('โหลดไลบรารีส่งออก Excel ไม่สำเร็จ (เครือข่ายอาจบล็อก CDN)');
+
+    const wb = XLSX.utils.book_new();
+    const usedNames = new Set();
+    tables.forEach((table, i) => {
+      const titleEl = table.closest('.card') ? table.closest('.card').querySelector('h3') : null;
+      let name = (titleEl ? titleEl.textContent.trim() : `ตาราง ${i + 1}`).replace(/[\\/?*[\]:]/g, '').slice(0, 31) || `Sheet${i + 1}`;
+      let unique = name, n = 2;
+      while (usedNames.has(unique)) { unique = (name.slice(0, 28) + '_' + n); n++; }
+      usedNames.add(unique);
+      const ws = XLSX.utils.table_to_sheet(table);
+      XLSX.utils.book_append_sheet(wb, ws, unique);
+    });
+
+    const reportLabel = document.getElementById('reportSelect').selectedOptions[0].textContent.replace(/^\d+\.\s*/, '').trim();
+    const filename = `รายงาน-${reportLabel}-${new Date().toISOString().slice(0, 10)}.xlsx`;
+    XLSX.writeFile(wb, filename);
+  } catch (err) {
+    toast('ส่งออกไม่สำเร็จ: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false; btn.innerHTML = '⬇ ส่งออกเป็น Excel';
+  }
+});
 
 // ---------------- People ----------------
 async function loadPeople() {
@@ -502,14 +565,88 @@ document.getElementById('adm_sameAsHouse').addEventListener('change', (e) => {
   if (e.target.checked) copyAdminHouseToCurrent();
 });
 
+// ---------------- สังกัด/หน่วยงาน: cascading dropdown จากไฟล์ "ข้อมูลสังกัด และกรมทั้งหมด" ----------------
+function initAdminAgencyDropdowns() {
+  const data = window.AGENCY_DATA;
+  const sangkadSel = document.getElementById('adm_sangkadSelect');
+  const deptSel = document.getElementById('adm_agencyNameSelect');
+  const typeSel = document.querySelector('#personForm .agency-type');
+  const otherInput = document.getElementById('adm_agencyNameOther');
+  if (!data || !sangkadSel || !deptSel) return;
+
+  data.sangkad.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.name; opt.dataset.agencyType = s.agencyType; opt.textContent = s.name;
+    sangkadSel.appendChild(opt);
+  });
+
+  sangkadSel.addEventListener('change', () => {
+    const sangkad = sangkadSel.value;
+    deptSel.innerHTML = '<option value="">เลือกหน่วยงาน</option>';
+    if (otherInput) { otherInput.style.display = 'none'; otherInput.value = ''; }
+    if (!sangkad) return;
+    data.departments.filter(d => d.sangkad === sangkad).forEach(d => {
+      const opt = document.createElement('option');
+      opt.value = d.name; opt.textContent = d.name;
+      deptSel.appendChild(opt);
+    });
+    const otherOpt = document.createElement('option');
+    otherOpt.value = 'อื่นๆ'; otherOpt.textContent = 'อื่นๆ (ระบุเอง)';
+    deptSel.appendChild(otherOpt);
+
+    const matched = data.sangkad.find(s => s.name === sangkad);
+    if (typeSel && matched) typeSel.value = matched.agencyType;
+  });
+
+  if (otherInput) {
+    deptSel.addEventListener('change', () => {
+      otherInput.style.display = (deptSel.value === 'อื่นๆ') ? '' : 'none';
+      if (deptSel.value !== 'อื่นๆ') otherInput.value = '';
+    });
+  }
+}
+initAdminAgencyDropdowns();
+
+function fillAdminAgencyGroup(form, p) {
+  const sangkadSel = form.Sangkad, deptSel = form.AgencyName;
+  if (!sangkadSel) return;
+  sangkadSel.value = p.Sangkad || '';
+  sangkadSel.dispatchEvent(new Event('change'));
+  setTimeout(() => {
+    setAdminSelectWithOther(deptSel, document.getElementById('adm_agencyNameOther'), p.AgencyName || '');
+    deptSel.dispatchEvent(new Event('change'));
+  }, 0);
+}
+
+// ---------------- รายชื่อสถาบันการศึกษา (autocomplete แบบพิมพ์เพิ่มเองได้) ----------------
+function populateAdminUniversityDatalist(names) {
+  const dl = document.getElementById('universityListAdm');
+  if (!dl) return;
+  const have = new Set(Array.from(dl.options).map(o => o.value));
+  names.forEach(name => {
+    if (have.has(name)) return;
+    const opt = document.createElement('option');
+    opt.value = name;
+    dl.appendChild(opt);
+    have.add(name);
+  });
+}
+
+(function fillAdminUniversityDatalist() {
+  populateAdminUniversityDatalist(window.THAI_UNIVERSITIES || []);
+  Api.universities().then(({ items }) => populateAdminUniversityDatalist(items || [])).catch(() => {});
+})();
+
 function openPersonForm(personId) {
   const wrap = document.getElementById('personFormWrap');
   const form = document.getElementById('personForm');
   form.reset();
   ['House_District', 'House_Subdistrict', 'Current_District', 'Current_Subdistrict'].forEach(f => { form[f].innerHTML = '<option value="">เลือกจังหวัดก่อน</option>'; });
+  document.getElementById('adm_agencyNameSelect').innerHTML = '<option value="">เลือกสังกัดก่อน</option>';
   document.getElementById('adm_prefixOther').style.display = 'none';
   document.getElementById('adm_eduLevelOther').style.display = 'none';
   document.getElementById('adm_positionTypeOther').style.display = 'none';
+  document.getElementById('adm_agencyNameOther').style.display = 'none';
   document.getElementById('adm_sameAsHouse').checked = false;
   document.getElementById('personFormAlert').innerHTML = '';
   wrap.style.display = '';
@@ -520,7 +657,7 @@ function openPersonForm(personId) {
     if (p) {
       const addressFields = new Set(['House_Province', 'House_District', 'House_Subdistrict', 'Current_Province', 'Current_District', 'Current_Subdistrict']);
       Object.keys(p).forEach(k => {
-        if (form[k] && !addressFields.has(k) && k !== 'Prefix' && k !== 'EducationLevel' && k !== 'PositionType') {
+        if (form[k] && !addressFields.has(k) && k !== 'Prefix' && k !== 'EducationLevel' && k !== 'PositionType' && k !== 'Sangkad' && k !== 'AgencyName') {
           form[k].value = p[k] instanceof Date ? '' : (p[k] || '');
         }
       });
@@ -530,6 +667,7 @@ function openPersonForm(personId) {
       setAdminSelectWithOther(form.PositionType, document.getElementById('adm_positionTypeOther'), p.PositionType || '');
       fillAdminAddressGroup(form, 'House', p);
       fillAdminAddressGroup(form, 'Current', p);
+      fillAdminAgencyGroup(form, p);
       ['MembershipExpireDate', 'LicenseExpireDate'].forEach(f => {
         if (p[f]) form[f].value = new Date(p[f]).toISOString().slice(0, 10);
       });
@@ -616,10 +754,10 @@ async function loadAgencies() {
     const { items } = await Api.adminAgencies();
     agenciesCache = items;
     document.getElementById('agenciesTableBody').innerHTML = items.length ? items.map(a => `
-      <tr><td>${escapeHtml(a.AgencyName)}</td><td>${escapeHtml(a.AgencyType || '-')}</td><td>${escapeHtml(a.Province || '-')}</td></tr>
-    `).join('') : '<tr><td colspan="3" class="text-soft">ไม่มีข้อมูล</td></tr>';
+      <tr><td>${escapeHtml(a.Sangkad || '-')}</td><td>${escapeHtml(a.AgencyName)}</td><td>${escapeHtml(a.AgencyType || '-')}</td><td>${escapeHtml(a.Province || '-')}</td></tr>
+    `).join('') : '<tr><td colspan="4" class="text-soft">ไม่มีข้อมูล</td></tr>';
   } catch (e) {
-    document.getElementById('agenciesTableBody').innerHTML = `<tr><td colspan="3" class="text-soft">โหลดไม่สำเร็จ: ${escapeHtml(e.message)}</td></tr>`;
+    document.getElementById('agenciesTableBody').innerHTML = `<tr><td colspan="4" class="text-soft">โหลดไม่สำเร็จ: ${escapeHtml(e.message)}</td></tr>`;
   }
 }
 

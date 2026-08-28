@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="style.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 <div class="flag-band"></div>
@@ -169,18 +170,21 @@
       <!-- ---------- TAB: รายงาน (Standard Reports) ---------- -->
       <div id="tabReports" class="tab-panel">
         <p class="text-sm text-soft">เลือกประเภทรายงานที่ต้องการดู — ข้อมูลคำนวณจากฐานข้อมูลปัจจุบันแบบเรียลไทม์</p>
-        <select id="reportSelect" style="max-width:420px;">
-          <option value="overview">1. สรุปภาพรวมทั่วประเทศ</option>
-          <option value="area">2. รายงานเชิงพื้นที่ (จังหวัด/ภูมิภาค)</option>
-          <option value="agency">3. รายงานตามประเภทหน่วยงาน/สังกัด</option>
-          <option value="position">4. รายงานตามประเภทตำแหน่งงาน</option>
-          <option value="license">5. รายงานสถานะใบอนุญาต</option>
-          <option value="membership">6. รายงานสถานะสมาชิกภาพ</option>
-          <option value="specialization">7. รายงานความเชี่ยวชาญ/สาขาการปฏิบัติงาน</option>
-          <option value="education">8. รายงานวุฒิการศึกษา</option>
-          <option value="discipline">9. รายงานประวัติวินัย/จริยธรรม (จำกัดสิทธิ์)</option>
-          <option value="trend">10. รายงานแนวโน้มเชิงเวลา (Trend Analysis)</option>
-        </select>
+        <div class="flex gap-12" style="flex-wrap:wrap; align-items:center;">
+          <select id="reportSelect" style="max-width:420px;">
+            <option value="overview">1. สรุปภาพรวมทั่วประเทศ</option>
+            <option value="area">2. รายงานเชิงพื้นที่ (จังหวัด/ภูมิภาค)</option>
+            <option value="agency">3. รายงานตามประเภทหน่วยงาน/สังกัด</option>
+            <option value="position">4. รายงานตามประเภทตำแหน่งงาน</option>
+            <option value="license">5. รายงานสถานะใบอนุญาต</option>
+            <option value="membership">6. รายงานสถานะสมาชิกภาพ</option>
+            <option value="specialization">7. รายงานความเชี่ยวชาญ/สาขาการปฏิบัติงาน</option>
+            <option value="education">8. รายงานวุฒิการศึกษา</option>
+            <option value="discipline">9. รายงานประวัติวินัย/จริยธรรม (จำกัดสิทธิ์)</option>
+            <option value="trend">10. รายงานแนวโน้มเชิงเวลา (Trend Analysis)</option>
+          </select>
+          <button class="btn btn-outline btn-sm" id="exportReportBtn">⬇ ส่งออกเป็น Excel</button>
+        </div>
         <p class="text-sm text-soft mt-8">รายงานที่ 11 (การใช้งานระบบ/Audit) ดูได้ที่แท็บ "บันทึกการใช้งาน (Audit Log)"</p>
         <div id="reportContent" class="mt-16"></div>
       </div>
@@ -261,19 +265,44 @@
                 <input type="text" id="adm_eduLevelOther" placeholder="โปรดระบุระดับการศึกษา" style="display:none; margin-top:8px;">
               </div>
               <div class="field"><label>สาขาวิชา</label><input type="text" name="EducationField"></div>
-              <div class="field"><label>สถาบัน</label><input type="text" name="EducationInstitute"></div>
+              <div class="field"><label>สถาบัน</label>
+                <input type="text" name="EducationInstitute" list="universityListAdm" placeholder="พิมพ์ค้นหา หรือระบุชื่อสถาบันใหม่ได้">
+                <datalist id="universityListAdm"></datalist>
+              </div>
               <div class="field"><label>ปีที่จบการศึกษา</label><input type="text" name="EducationYear"></div>
             </div>
 
             <h4>การทำงาน</h4>
             <div class="form-grid">
               <div class="field"><label>ประเภทตำแหน่งงาน</label>
-                <select name="PositionType" id="adm_positionTypeSelect"><option>นักสังคมสงเคราะห์</option><option>นักพัฒนาสังคม</option><option>นักพัฒนาชุมชน</option><option value="อื่นๆ">อื่นๆ</option></select>
+                <select name="PositionType" id="adm_positionTypeSelect">
+                  <option>นักสังคมสงเคราะห์</option>
+                  <option>ผู้ช่วยนักสังคมสงเคราะห์</option>
+                  <option>นักพัฒนาสังคม</option>
+                  <option>นักพัฒนาชุมชน</option>
+                  <option value="อื่นๆ">อื่นๆ</option>
+                </select>
                 <input type="text" id="adm_positionTypeOther" placeholder="โปรดระบุประเภทตำแหน่งงาน" style="display:none; margin-top:8px;">
               </div>
-              <div class="field"><label>หน่วยงาน/สังกัด</label><input type="text" name="AgencyName"></div>
+              <div class="field"><label>ระดับตำแหน่ง</label>
+                <select name="PositionLevel">
+                  <option value="">ไม่ระบุ</option>
+                  <option value="ปฏิบัติการ">ปฏิบัติการ</option>
+                  <option value="ชำนาญการ">ชำนาญการ</option>
+                  <option value="ชำนาญการพิเศษ">ชำนาญการพิเศษ</option>
+                  <option value="เชี่ยวชาญ">เชี่ยวชาญ</option>
+                  <option value="ผู้ทรงคุณวุฒิ">ผู้ทรงคุณวุฒิ</option>
+                </select>
+              </div>
+              <div class="field"><label>สังกัด</label>
+                <select name="Sangkad" class="agency-sangkad" id="adm_sangkadSelect"><option value="">เลือกสังกัด</option></select>
+              </div>
+              <div class="field"><label>หน่วยงาน/กรม</label>
+                <select name="AgencyName" class="agency-department" id="adm_agencyNameSelect"><option value="">เลือกสังกัดก่อน</option></select>
+                <input type="text" id="adm_agencyNameOther" placeholder="โปรดระบุชื่อหน่วยงาน" style="display:none; margin-top:8px;">
+              </div>
               <div class="field"><label>ประเภทหน่วยงาน</label>
-                <select name="AgencyType"><option>ภาครัฐ</option><option>ท้องถิ่น</option><option>เอกชน</option><option>NGO</option></select>
+                <select name="AgencyType" class="agency-type"><option>ภาครัฐ</option><option>ท้องถิ่น</option><option>เอกชน</option><option>NGO</option><option>อื่นๆ</option></select>
               </div>
               <div class="field"><label>ที่ทำงาน</label><input type="text" name="WorkAddress" placeholder="ที่อยู่สถานที่ทำงาน"></div>
               <div class="field"><label>ความเชี่ยวชาญ</label><input type="text" name="Specializations"></div>
@@ -353,8 +382,8 @@
         </div>
         <div class="table-scroll mt-16">
           <table class="data-table">
-            <thead><tr><th>ชื่อหน่วยงาน</th><th>ประเภท</th><th>จังหวัด</th></tr></thead>
-            <tbody id="agenciesTableBody"><tr><td colspan="3" class="text-soft">กำลังโหลด...</td></tr></tbody>
+            <thead><tr><th>สังกัด</th><th>ชื่อหน่วยงาน</th><th>ประเภท</th><th>จังหวัด</th></tr></thead>
+            <tbody id="agenciesTableBody"><tr><td colspan="4" class="text-soft">กำลังโหลด...</td></tr></tbody>
           </table>
         </div>
         <div id="agencyFormWrap" style="display:none;" class="card mt-16">
@@ -362,9 +391,10 @@
           <form id="agencyForm">
             <input type="hidden" name="AgencyID">
             <div class="form-grid">
+              <div class="field"><label>สังกัด (กระทรวง/หน่วยงานระดับบน)</label><input type="text" name="Sangkad" placeholder="เช่น กระทรวงการพัฒนาสังคมและความมั่นคงของมนุษย์"></div>
               <div class="field"><label>ชื่อหน่วยงาน *</label><input type="text" name="AgencyName" required></div>
               <div class="field"><label>ประเภทหน่วยงาน</label>
-                <select name="AgencyType"><option>ภาครัฐ</option><option>ท้องถิ่น</option><option>เอกชน</option><option>NGO</option></select>
+                <select name="AgencyType"><option>ภาครัฐ</option><option>ท้องถิ่น</option><option>เอกชน</option><option>NGO</option><option>อื่นๆ</option></select>
               </div>
               <div class="field"><label>จังหวัด</label><input type="text" name="Province"></div>
             </div>
@@ -399,6 +429,8 @@
 </footer>
 
 <script src="thai-address-data.js"></script>
+<script src="agency-data.js"></script>
+<script src="universities-data.js"></script>
 <script src="api.js"></script>
 <script src="charts.js"></script>
 <script src="thailand-map.js"></script>

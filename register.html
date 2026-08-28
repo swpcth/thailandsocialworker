@@ -163,7 +163,10 @@
             <input type="text" id="eduLevelOther" placeholder="โปรดระบุระดับการศึกษา" style="display:none; margin-top:8px;">
           </div>
           <div class="field"><label>สาขาวิชา</label><input type="text" name="EducationField"></div>
-          <div class="field"><label>สถาบัน</label><input type="text" name="EducationInstitute"></div>
+          <div class="field"><label>สถาบัน</label>
+            <input type="text" name="EducationInstitute" list="universityListReg" placeholder="พิมพ์ค้นหา หรือระบุชื่อสถาบันใหม่ได้">
+            <datalist id="universityListReg"></datalist>
+          </div>
           <div class="field"><label>ปีที่จบการศึกษา</label><input type="text" name="EducationYear"></div>
         </div>
 
@@ -175,15 +178,32 @@
           <div class="field"><label>ประเภทตำแหน่งงาน *</label>
             <select name="PositionType" id="positionTypeSelect" required>
               <option value="นักสังคมสงเคราะห์">นักสังคมสงเคราะห์</option>
+              <option value="ผู้ช่วยนักสังคมสงเคราะห์">ผู้ช่วยนักสังคมสงเคราะห์</option>
               <option value="นักพัฒนาสังคม">นักพัฒนาสังคม</option>
               <option value="นักพัฒนาชุมชน">นักพัฒนาชุมชน</option>
               <option value="อื่นๆ">อื่นๆ</option>
             </select>
             <input type="text" id="positionTypeOther" placeholder="โปรดระบุประเภทตำแหน่งงาน" style="display:none; margin-top:8px;">
           </div>
-          <div class="field"><label>หน่วยงาน/สังกัดปัจจุบัน</label><input type="text" name="AgencyName"></div>
+          <div class="field"><label>ระดับตำแหน่ง</label>
+            <select name="PositionLevel" id="positionLevelSelect">
+              <option value="">ไม่ระบุ</option>
+              <option value="ปฏิบัติการ">ปฏิบัติการ</option>
+              <option value="ชำนาญการ">ชำนาญการ</option>
+              <option value="ชำนาญการพิเศษ">ชำนาญการพิเศษ</option>
+              <option value="เชี่ยวชาญ">เชี่ยวชาญ</option>
+              <option value="ผู้ทรงคุณวุฒิ">ผู้ทรงคุณวุฒิ</option>
+            </select>
+          </div>
+          <div class="field"><label>สังกัด</label>
+            <select name="Sangkad" class="agency-sangkad" required><option value="">เลือกสังกัด</option></select>
+          </div>
+          <div class="field"><label>หน่วยงาน/กรม *</label>
+            <select name="AgencyName" class="agency-department" required><option value="">เลือกสังกัดก่อน</option></select>
+            <input type="text" id="agencyNameOther" placeholder="โปรดระบุชื่อหน่วยงาน" style="display:none; margin-top:8px;">
+          </div>
           <div class="field"><label>ประเภทหน่วยงาน</label>
-            <select name="AgencyType"><option value="ภาครัฐ">ภาครัฐ</option><option value="ท้องถิ่น">ท้องถิ่น</option><option value="เอกชน">เอกชน</option><option value="NGO">NGO</option></select>
+            <select name="AgencyType" class="agency-type"><option value="ภาครัฐ">ภาครัฐ</option><option value="ท้องถิ่น">ท้องถิ่น</option><option value="เอกชน">เอกชน</option><option value="NGO">NGO</option><option value="อื่นๆ">อื่นๆ</option></select>
           </div>
         </div>
 
@@ -264,19 +284,36 @@
         <div class="form-grid">
           <div class="field"><label>เบอร์โทรศัพท์</label><input type="tel" name="Phone"></div>
           <div class="field"><label>อีเมล</label><input type="email" name="Email"></div>
-          <div class="field"><label>ที่อยู่ตามทะเบียนบ้าน</label><input type="text" name="HouseAddress"></div>
-          <div class="field"><label>ที่อยู่ปัจจุบัน</label><input type="text" name="CurrentAddress"></div>
           <div class="field"><label>ที่ทำงาน</label><input type="text" name="WorkAddress"></div>
           <div class="field"><label>จังหวัด</label><input type="text" name="Province"></div>
           <div class="field"><label>ระดับการศึกษา</label><input type="text" name="EducationLevel"></div>
           <div class="field"><label>สาขาวิชา</label><input type="text" name="EducationField"></div>
-          <div class="field"><label>สถาบัน</label><input type="text" name="EducationInstitute"></div>
+          <div class="field"><label>สถาบัน</label><input type="text" name="EducationInstitute" list="universityListProf">
+            <datalist id="universityListProf"></datalist>
+          </div>
           <div class="field"><label>ประเภทตำแหน่งงาน</label>
-            <select name="PositionType"><option>นักสังคมสงเคราะห์</option><option>นักพัฒนาสังคม</option><option>นักพัฒนาชุมชน</option><option>อื่นๆ</option></select>
+            <select name="PositionType">
+              <option>นักสังคมสงเคราะห์</option>
+              <option>ผู้ช่วยนักสังคมสงเคราะห์</option>
+              <option>นักพัฒนาสังคม</option>
+              <option>นักพัฒนาชุมชน</option>
+              <option>อื่นๆ</option>
+            </select>
+          </div>
+          <div class="field"><label>ระดับตำแหน่ง</label>
+            <select name="PositionLevel">
+              <option value="">ไม่ระบุ</option>
+              <option value="ปฏิบัติการ">ปฏิบัติการ</option>
+              <option value="ชำนาญการ">ชำนาญการ</option>
+              <option value="ชำนาญการพิเศษ">ชำนาญการพิเศษ</option>
+              <option value="เชี่ยวชาญ">เชี่ยวชาญ</option>
+              <option value="ผู้ทรงคุณวุฒิ">ผู้ทรงคุณวุฒิ</option>
+            </select>
           </div>
           <div class="field"><label>หน่วยงาน/สังกัด</label><input type="text" name="AgencyName"></div>
           <div class="field"><label>ความเชี่ยวชาญ (คั่นด้วยจุลภาค)</label><input type="text" name="Specializations"></div>
         </div>
+        <p class="text-sm text-soft">การแก้ไขที่อยู่แบบละเอียด (ทะเบียนบ้าน/ปัจจุบัน) และหน่วยงานแบบเลือกจากรายการ ยังทำได้เฉพาะตอนลงทะเบียนครั้งแรกเท่านั้น หากต้องการแก้ไขส่วนนี้ กรุณาติดต่อเจ้าหน้าที่สภาวิชาชีพฯ</p>
         <button type="submit" class="btn btn-primary">บันทึกการแก้ไข</button>
       </form>
 
@@ -303,6 +340,8 @@
 </footer>
 
 <script src="thai-address-data.js"></script>
+<script src="agency-data.js"></script>
+<script src="universities-data.js"></script>
 <script src="api.js"></script>
 <script src="register.js"></script>
 </body>

@@ -79,3 +79,25 @@ async function renderChartsSafely(chartDefs) {
     try { render(); } catch (e) { showChartFallback(canvasEl, 'ไม่สามารถแสดงกราฟนี้ได้: ' + e.message); }
   }
 }
+
+// โหลดไลบรารี SheetJS (XLSX) แบบไดนามิกพร้อม CDN สำรอง — ใช้รูปแบบเดียวกับ ensureChartLoaded ด้านบน
+function ensureXlsxLoaded(timeoutMs = 6000) {
+  if (window.XLSX) return Promise.resolve(true);
+  const sources = [
+    'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
+    'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'
+  ];
+  function tryLoad(i) {
+    if (window.XLSX) return Promise.resolve(true);
+    if (i >= sources.length) return Promise.resolve(false);
+    return new Promise(resolve => {
+      const script = document.createElement('script');
+      script.src = sources[i];
+      const timer = setTimeout(() => resolve(false), timeoutMs);
+      script.onload = () => { clearTimeout(timer); resolve(true); };
+      script.onerror = () => { clearTimeout(timer); resolve(false); };
+      document.head.appendChild(script);
+    }).then(ok => (ok && window.XLSX) ? true : tryLoad(i + 1));
+  }
+  return tryLoad(0);
+}

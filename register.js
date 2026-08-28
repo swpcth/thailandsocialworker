@@ -75,8 +75,86 @@ function applyOtherOverrides(data) {
   if (data.PositionType === 'อื่นๆ' && posOther) data.PositionType = posOther;
   const practiceOther = document.getElementById('practiceStatusOther').value.trim();
   if (data.PracticeStatus === 'อื่นๆ' && practiceOther) data.PracticeStatus = practiceOther;
+  const agencyOther = document.getElementById('agencyNameOther').value.trim();
+  if (data.AgencyName === 'อื่นๆ' && agencyOther) data.AgencyName = agencyOther;
   return data;
 }
+
+// ---------------- สังกัด/หน่วยงาน: cascading dropdown จากไฟล์ "ข้อมูลสังกัด และกรมทั้งหมด" ----------------
+// ใช้ข้อมูลจาก js/agency-data.js (27 สังกัด / 186 หน่วยงาน)
+function initAgencyDropdowns() {
+  const data = window.AGENCY_DATA;
+  const sangkadSel = document.querySelector('.agency-sangkad');
+  const deptSel = document.querySelector('.agency-department');
+  const typeSel = document.querySelector('.agency-type');
+  const otherInput = document.getElementById('agencyNameOther');
+  if (!data || !sangkadSel || !deptSel) return;
+
+  data.sangkad.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.name; opt.dataset.agencyType = s.agencyType; opt.textContent = s.name;
+    sangkadSel.appendChild(opt);
+  });
+
+  sangkadSel.addEventListener('change', () => {
+    const sangkad = sangkadSel.value;
+    deptSel.innerHTML = '<option value="">เลือกหน่วยงาน</option>';
+    if (otherInput) { otherInput.style.display = 'none'; otherInput.value = ''; }
+    if (!sangkad) return;
+    data.departments.filter(d => d.sangkad === sangkad).forEach(d => {
+      const opt = document.createElement('option');
+      opt.value = d.name; opt.textContent = d.name;
+      deptSel.appendChild(opt);
+    });
+    // เผื่อหน่วยงานย่อยจริงไม่อยู่ในรายการ (เช่น รพ./สำนักงานสาขา) ให้เลือก "อื่นๆ" แล้วพิมพ์เองได้เสมอ
+    const otherOpt = document.createElement('option');
+    otherOpt.value = 'อื่นๆ'; otherOpt.textContent = 'อื่นๆ (ระบุเอง)';
+    deptSel.appendChild(otherOpt);
+
+    const matched = data.sangkad.find(s => s.name === sangkad);
+    if (typeSel && matched) typeSel.value = matched.agencyType;
+  });
+
+  if (otherInput) {
+    deptSel.addEventListener('change', () => {
+      otherInput.style.display = (deptSel.value === 'อื่นๆ') ? '' : 'none';
+      if (deptSel.value !== 'อื่นๆ') otherInput.value = '';
+    });
+  }
+}
+initAgencyDropdowns();
+
+function fillAgencyGroup(form, p) {
+  const sangkadSel = form.Sangkad, deptSel = form.AgencyName;
+  if (!sangkadSel) return;
+  sangkadSel.value = p.Sangkad || '';
+  sangkadSel.dispatchEvent(new Event('change'));
+  setTimeout(() => {
+    setSelectWithOther(deptSel, document.getElementById('agencyNameOther'), p.AgencyName || '');
+    deptSel.dispatchEvent(new Event('change'));
+  }, 0);
+}
+
+// ---------------- รายชื่อสถาบันการศึกษา (autocomplete แบบพิมพ์เพิ่มเองได้) ----------------
+// แสดงลิสต์ในเครื่อง (window.THAI_UNIVERSITIES) ทันทีก่อนเพื่อความเร็ว แล้วค่อยผสานกับรายชื่อจริงจากฐานข้อมูล
+// (ซึ่งจะมีชื่อสถาบันที่ผู้ใช้คนอื่นเคยพิมพ์เพิ่มเองไว้ด้วย — ดู ensureUniversitySaved ฝั่ง backend)
+function populateUniversityDatalists(names) {
+  document.querySelectorAll('datalist[id^="universityList"]').forEach(dl => {
+    const have = new Set(Array.from(dl.options).map(o => o.value));
+    names.forEach(name => {
+      if (have.has(name)) return;
+      const opt = document.createElement('option');
+      opt.value = name;
+      dl.appendChild(opt);
+      have.add(name);
+    });
+  });
+}
+
+(function fillUniversityDatalist() {
+  populateUniversityDatalists(window.THAI_UNIVERSITIES || []);
+  Api.universities().then(({ items }) => populateUniversityDatalists(items || [])).catch(() => {});
+})();
 
 // ---------------- ที่อยู่: จังหวัด/อำเภอ/ตำบล/รหัสไปรษณีย์ แบบ cascading dropdown ----------------
 // ใช้ข้อมูลจาก js/thai-address-data.js (77 จังหวัด / 928 อำเภอ / 7,436 ตำบล พร้อมรหัสไปรษณีย์)
@@ -258,8 +336,8 @@ async function pullFromCouncil(section) {
     ['EducationField', 'EducationInstitute', 'EducationYear'].forEach(k => { f[k].value = p[k] || ''; });
   } else if (section === 'work') {
     setSelectWithOther(document.getElementById('positionTypeSelect'), document.getElementById('positionTypeOther'), p.PositionType || '');
-    f.AgencyName.value = p.AgencyName || '';
-    f.AgencyType.value = p.AgencyType || f.AgencyType.value;
+    if (f.PositionLevel) f.PositionLevel.value = p.PositionLevel || '';
+    fillAgencyGroup(f, p);
     clearWorkHistoryRows();
     (data.workHistory || []).forEach(w => addWorkHistoryRow(w));
   } else if (section === 'membership') {
@@ -357,7 +435,7 @@ function fillProfile(person, workHistory) {
   document.getElementById('profLicenseExp').textContent = person.LicenseExpireDate ? fmtDate(person.LicenseExpireDate) : '-';
 
   const form = document.getElementById('profileForm');
-  ['Phone','Email','HouseAddress','CurrentAddress','WorkAddress','Province','EducationLevel','EducationField','EducationInstitute','PositionType','AgencyName','Specializations']
+  ['Phone','Email','WorkAddress','Province','EducationLevel','EducationField','EducationInstitute','PositionType','PositionLevel','AgencyName','Specializations']
     .forEach(f => { if (form[f]) form[f].value = person[f] || ''; });
 
   const tbody = document.getElementById('workHistoryBody');
