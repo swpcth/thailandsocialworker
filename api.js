@@ -45,15 +45,15 @@ const Api = (() => {
     courses: (q) => get('courses', { q }),
     workHistory: (personId) => get('workHistory', { personId }),
 
-    register: (data, password, workHistoryEntries) => post('register', { data, password, workHistoryEntries }),
+    register: (data, password, workHistoryEntries, educationEntries) => post('register', { data, password, workHistoryEntries, educationEntries }),
     selfLogin: (nationalId, password) => post('selfLogin', { nationalId, password }),
-    updateProfile: (nationalId, password, data) => post('updateProfile', { nationalId, password, data }),
+    updateProfile: (nationalId, password, data, educationEntries) => post('updateProfile', { nationalId, password, data, educationEntries }),
     prefillLookup: (nationalId) => get('prefillLookup', { nationalId }),
 
     // ThaiD (ระบบพิสูจน์และยืนยันตัวตนทางดิจิทัลภาครัฐ)
     thaidLoginUrl: (role, returnPath) => get('thaidLoginUrl', { role, returnPath: returnPath || '' }),
     personMe: (token) => get('personMe', { token }),
-    personUpdateProfileToken: (token, data) => post('personUpdateProfileToken', { token, data }),
+    personUpdateProfileToken: (token, data, educationEntries) => post('personUpdateProfileToken', { token, data, educationEntries }),
 
     adminLogin: (username, password) => post('adminLogin', { username, password }),
     adminVerifyLoginOtp: (username, otp) => post('adminVerifyLoginOtp', { username, otp }),
@@ -69,6 +69,7 @@ const Api = (() => {
     adminUpsertDiscipline: (token, data) => post('adminUpsertDiscipline', { token, data }),
     adminListAudit: (token) => get('adminAudit', { token }),
     adminAgencies: () => get('adminAgencies'),
+    adminAllEducation: (token) => get('adminAllEducation', { token }),
     universities: () => get('universities'),
     adminUpsertAgency: (token, data) => post('adminUpsertAgency', { token, data }),
     adminUpsertCourse: (token, data) => post('adminUpsertCourse', { token, data }),

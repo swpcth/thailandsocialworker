@@ -347,9 +347,23 @@ async function renderReport(type) {
   } else if (type === 'specialization') {
     el.innerHTML = `<div class="card"><h3 style="margin-top:0;">แยกตามความเชี่ยวชาญ</h3>${renderCountTable(stats.bySpecialization || {}, ['ความเชี่ยวชาญ', 'จำนวน'])}</div>`;
   } else if (type === 'education') {
-    el.innerHTML = `<div class="card"><h3 style="margin-top:0;">แยกตามระดับการศึกษา</h3>${renderCountTable(groupBy(people, p => p.EducationLevel), ['ระดับการศึกษา', 'จำนวน'])}</div>
-      <div class="card mt-16"><h3 style="margin-top:0;">แยกตามสาขาวิชา</h3>${renderCountTable(groupBy(people, p => p.EducationField), ['สาขาวิชา', 'จำนวน'])}</div>
-      <div class="card mt-16"><h3 style="margin-top:0;">แยกตามสถาบัน/มหาวิทยาลัย</h3>${renderCountTable(groupBy(people, p => p.EducationInstitute), ['สถาบัน/มหาวิทยาลัย', 'จำนวน'])}</div>`;
+    try {
+      const { items: allEducation } = await Api.adminAllEducation(adminToken);
+      const peopleWithDegree = new Set(allEducation.map(e => e.PersonID));
+      const degreeCountByPerson = groupBy(allEducation, e => e.PersonID);
+      const multiDegreeCount = Object.values(degreeCountByPerson).filter(n => n > 1).length;
+      el.innerHTML = `
+        <div class="grid grid-3">
+          <div class="card kpi"><div class="num">${allEducation.length.toLocaleString('th-TH')}</div><div class="label">วุฒิการศึกษาทั้งหมดที่บันทึกไว้</div></div>
+          <div class="card kpi accent-green"><div class="num">${peopleWithDegree.size.toLocaleString('th-TH')}</div><div class="label">จำนวนคนที่มีข้อมูลวุฒิ</div></div>
+          <div class="card kpi accent-gold"><div class="num">${multiDegreeCount.toLocaleString('th-TH')}</div><div class="label">คนที่มีมากกว่า 1 วุฒิ</div></div>
+        </div>
+        <div class="card mt-16"><h3 style="margin-top:0;">แยกตามระดับการศึกษา (นับทุกวุฒิของทุกคน)</h3>${renderCountTable(groupBy(allEducation, e => e.EducationLevel), ['ระดับการศึกษา', 'จำนวน'])}</div>
+        <div class="card mt-16"><h3 style="margin-top:0;">แยกตามสาขาวิชา</h3>${renderCountTable(groupBy(allEducation, e => e.EducationField), ['สาขาวิชา', 'จำนวน'])}</div>
+        <div class="card mt-16"><h3 style="margin-top:0;">แยกตามสถาบัน/มหาวิทยาลัย</h3>${renderCountTable(groupBy(allEducation, e => e.EducationInstitute), ['สถาบัน/มหาวิทยาลัย', 'จำนวน'])}</div>`;
+    } catch (e) {
+      el.innerHTML = `<div class="alert alert-error">โหลดข้อมูลวุฒิการศึกษาไม่สำเร็จ: ${escapeHtml(e.message)}</div>`;
+    }
   } else if (type === 'discipline') {
     if (adminRole !== 'superadmin') { el.innerHTML = '<div class="alert alert-error">รายงานนี้จำกัดสิทธิ์เฉพาะผู้ดูแลระบบระดับสูง (superadmin)</div>'; return; }
     try {
