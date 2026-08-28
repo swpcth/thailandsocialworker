@@ -292,9 +292,6 @@ function addWorkHistoryRow(prefill) {
   document.getElementById('workHistoryRows').appendChild(wrap);
 }
 document.getElementById('addWorkHistoryRow').addEventListener('click', () => addWorkHistoryRow());
-document.getElementById('addEducationRow').addEventListener('click', () => addEducationRow('educationRows'));
-document.getElementById('profAddEducationRow').addEventListener('click', () => addEducationRow('profEducationRows'));
-addEducationRow('educationRows'); // เริ่มด้วย 1 แถวว่างให้กรอกได้ทันที
 
 function clearWorkHistoryRows() { document.getElementById('workHistoryRows').innerHTML = ''; }
 
@@ -363,6 +360,10 @@ function collectEducationEntries(containerId) {
     };
   }).filter(e => e.EducationLevel || e.EducationInstitute || e.EducationField);
 }
+
+document.getElementById('addEducationRow').addEventListener('click', () => addEducationRow('educationRows'));
+document.getElementById('profAddEducationRow').addEventListener('click', () => addEducationRow('profEducationRows'));
+addEducationRow('educationRows'); // เริ่มด้วย 1 แถวว่างให้กรอกได้ทันที
 
 
 // ---------------- ดึงข้อมูลจากสภาฯ (สำหรับผู้ที่เคยเป็นสมาชิก/มีข้อมูลอยู่แล้ว) ----------------
