@@ -63,6 +63,7 @@ const Api = (() => {
     adminWhoami: (token) => get('adminWhoami', { token }),
     adminGetPerson: (token, personId) => get('adminGetPerson', { token, personId }),
     adminUpsertPerson: (token, data, workHistoryEntry) => post('adminUpsertPerson', { token, data, workHistoryEntry }),
+    adminBulkImportPersons: (token, records) => post('adminBulkImportPersons', { token, records }),
     adminDeletePerson: (token, personId) => post('adminDeletePerson', { token, personId }),
     adminListDiscipline: (token) => get('adminDiscipline', { token }),
     adminUpsertDiscipline: (token, data) => post('adminUpsertDiscipline', { token, data }),

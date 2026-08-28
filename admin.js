@@ -440,6 +440,159 @@ document.getElementById('peopleFilter').addEventListener('input', (e) => {
   renderPeopleTable(filtered);
 });
 
+// ---------------- นำเข้าสมาชิกจากไฟล์ Excel ----------------
+let importParsedRecords = null; // แคชผลลัพธ์ที่แปลงจากไฟล์แล้ว รอผู้ใช้กดยืนยัน
+
+document.getElementById('importPeopleBtn').addEventListener('click', () => {
+  document.getElementById('importPeopleFile').value = '';
+  document.getElementById('importPeopleFile').click();
+});
+
+// แปลงวันที่รูปแบบ "DD-MM-YYYY" (ที่ใช้ในไฟล์ต้นฉบับ) ให้เป็น "YYYY-MM-DD" (รูปแบบที่ระบบใช้เก็บ)
+function convertThaiFileDate(s) {
+  const str = String(s || '').trim();
+  const m = str.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
+  if (!m) return '';
+  const [, d, mo, y] = m;
+  return `${y}-${mo.padStart(2, '0')}-${d.padStart(2, '0')}`;
+}
+
+function mapMembershipStatus(s) {
+  const v = String(s || '').trim();
+  if (v === 'ปกติ') return 'active';
+  if (v === 'หมดอายุ') return 'ended';
+  return 'none';
+}
+
+// แปลงแถวดิบจากไฟล์ Excel (ตามลำดับคอลัมน์ของไฟล์ "ข้อมูลสมาชิกสภาวิชาชีพสังคมสงเคราะห์.xlsx") ให้เป็น field ของระบบ
+// ลำดับคอลัมน์: 0 ลำดับที่, 1 เลขที่สมัครสมาชิก, 2 เลขใบอนุญาต, 3 เลขบัตรประชาชน, 4 คำนำหน้า, 5 คำนำหน้าอื่นๆ,
+// 6 ชื่อ, 7 นามสกุล, 8-11 ชื่อภาษาอังกฤษ (ไม่ใช้), 12 เบอร์โทร, 13 email, 14 วันที่เริ่มการสมัคร, 15 วันที่สิ้นสุดการสมัคร,
+// 16 ประเภทที่สมัคร, 17 สถานะ, 18 สถานะทำงาน, 19 ตำแหน่ง, 20 ตำแหน่งอื่นๆ
+function mapImportRow(row) {
+  const val = (i) => { const v = row[i]; return (v === undefined || v === null || String(v).trim() === '-') ? '' : String(v).trim(); };
+  const nationalId = val(3);
+  const firstName = val(6), lastName = val(7);
+  const prefix = val(4) || val(5);
+  const licenseNumber = val(2);
+  const positionType = val(19) || val(20);
+  const practiceStatus = val(18);
+
+  const data = {
+    NationalID: nationalId,
+    FirstName: firstName,
+    LastName: lastName,
+    MembershipNumber: val(1),
+    LicenseNumber: licenseNumber,
+    LicenseStatus: licenseNumber ? 'active' : 'none',
+    Phone: val(12),
+    Email: val(13),
+    MembershipIssueDate: convertThaiFileDate(row[14]),
+    MembershipExpireDate: convertThaiFileDate(row[15]),
+    MembershipType: val(16),
+    MembershipStatus: mapMembershipStatus(row[17])
+  };
+  if (prefix) data.Prefix = prefix;
+  if (positionType) data.PositionType = positionType;
+  if (practiceStatus) data.PracticeStatus = practiceStatus;
+  return data;
+}
+
+document.getElementById('importPeopleFile').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const wrap = document.getElementById('importPreviewWrap');
+  const summaryEl = document.getElementById('importSummaryText');
+  wrap.style.display = '';
+  document.getElementById('importProgressWrap').style.display = 'none';
+  document.getElementById('importResultText').innerHTML = '';
+  summaryEl.textContent = 'กำลังอ่านไฟล์...';
+  wrap.scrollIntoView({ behavior: 'smooth' });
+
+  try {
+    const ok = await ensureXlsxLoaded();
+    if (!ok) throw new Error('โหลดไลบรารีอ่านไฟล์ Excel ไม่สำเร็จ (เครือข่ายอาจบล็อก CDN)');
+
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, { type: 'array' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+    const dataRows = rows.slice(1); // แถวแรกคือหัวตาราง
+
+    const seenInFile = new Set();
+    let valid = 0, invalidFormat = 0, dupInFile = 0;
+    const mapped = [];
+    dataRows.forEach(row => {
+      if (!row || row.every(c => c === '' || c === undefined)) return; // แถวว่าง
+      const rec = mapImportRow(row);
+      if (!/^\d{13}$/.test(rec.NationalID) || !rec.FirstName || !rec.LastName) { invalidFormat++; return; }
+      if (seenInFile.has(rec.NationalID)) { dupInFile++; return; } // เลขบัตรซ้ำในไฟล์เดียวกัน ใช้รายการแรกที่เจอ
+      seenInFile.add(rec.NationalID);
+      mapped.push(rec);
+      valid++;
+    });
+
+    importParsedRecords = mapped;
+    summaryEl.innerHTML = `พบทั้งหมด ${dataRows.length.toLocaleString('th-TH')} แถว —
+      <strong>ถูกต้องพร้อมนำเข้า ${valid.toLocaleString('th-TH')} รายการ</strong>
+      ${invalidFormat ? `, ข้อมูลไม่ครบ/เลขบัตรไม่ถูกต้อง ${invalidFormat.toLocaleString('th-TH')} รายการ (ข้าม)` : ''}
+      ${dupInFile ? `, เลขบัตรซ้ำกันเองในไฟล์ ${dupInFile.toLocaleString('th-TH')} รายการ (ใช้รายการแรกที่พบ)` : ''}`;
+  } catch (err) {
+    summaryEl.innerHTML = `<span style="color:var(--red-bad);">อ่านไฟล์ไม่สำเร็จ: ${escapeHtml(err.message)}</span>`;
+    importParsedRecords = null;
+  }
+});
+
+document.getElementById('importCancelBtn').addEventListener('click', () => {
+  document.getElementById('importPreviewWrap').style.display = 'none';
+  importParsedRecords = null;
+});
+
+document.getElementById('importConfirmBtn').addEventListener('click', async () => {
+  if (!importParsedRecords || !importParsedRecords.length) { toast('ไม่มีข้อมูลที่พร้อมนำเข้า', 'error'); return; }
+
+  const btn = document.getElementById('importConfirmBtn');
+  btn.disabled = true;
+  document.getElementById('importCancelBtn').disabled = true;
+  const progressWrap = document.getElementById('importProgressWrap');
+  const progressBar = document.getElementById('importProgressBar');
+  const progressText = document.getElementById('importProgressText');
+  progressWrap.style.display = '';
+
+  const CHUNK_SIZE = 300;
+  const total = importParsedRecords.length;
+  let done = 0;
+  const totals = { created: 0, updated: 0, skippedClaimed: 0, invalid: 0 };
+
+  try {
+    for (let i = 0; i < total; i += CHUNK_SIZE) {
+      const chunk = importParsedRecords.slice(i, i + CHUNK_SIZE);
+      const res = await Api.adminBulkImportPersons(adminToken, chunk);
+      totals.created += res.created; totals.updated += res.updated;
+      totals.skippedClaimed += res.skippedClaimed; totals.invalid += res.invalid;
+      done += chunk.length;
+      const pct = Math.round((done / total) * 100);
+      progressBar.style.width = pct + '%';
+      progressText.textContent = `กำลังนำเข้า... ${done.toLocaleString('th-TH')} / ${total.toLocaleString('th-TH')} รายการ`;
+    }
+    document.getElementById('importResultText').innerHTML = `<div class="alert alert-success">
+      นำเข้าสำเร็จ — สร้างใหม่ ${totals.created.toLocaleString('th-TH')} รายการ,
+      อัปเดตระเบียนเดิมที่ยังไม่มีคนรับสิทธิ์ ${totals.updated.toLocaleString('th-TH')} รายการ,
+      ข้ามเพราะมีเจ้าของบัญชีแล้ว ${totals.skippedClaimed.toLocaleString('th-TH')} รายการ,
+      ข้อมูลไม่ถูกต้อง ${totals.invalid.toLocaleString('th-TH')} รายการ
+    </div>`;
+    toast('นำเข้าข้อมูลสมาชิกสำเร็จ');
+    importParsedRecords = null;
+    loadPeople();
+    loadAdminDashboard();
+  } catch (err) {
+    document.getElementById('importResultText').innerHTML = `<div class="alert alert-error">นำเข้าไม่สำเร็จระหว่างทาง (นำเข้าไปแล้ว ${done.toLocaleString('th-TH')} จาก ${total.toLocaleString('th-TH')} รายการ): ${escapeHtml(err.message)} — กด "เริ่มนำเข้า" ซ้ำได้ ระบบจะข้ามรายการที่นำเข้าไปแล้วอัตโนมัติ</div>`;
+  } finally {
+    btn.disabled = false;
+    document.getElementById('importCancelBtn').disabled = false;
+  }
+});
+
 // ---------------- "อื่นๆ" -> ช่องกรอกข้อความเพิ่มเติม (แบบฟอร์มผู้ดูแลระบบ) ----------------
 function wireAdminOtherToggle(selectId, otherId) {
   const select = document.getElementById(selectId);

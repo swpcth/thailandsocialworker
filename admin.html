@@ -185,6 +185,7 @@
           </select>
           <button class="btn btn-outline btn-sm" id="exportReportBtn">⬇ ส่งออกเป็น Excel</button>
         </div>
+        <p class="text-sm text-soft mt-8">รายงานที่ 11 (การใช้งานระบบ/Audit) ดูได้ที่แท็บ "บันทึกการใช้งาน (Audit Log)"</p>
         <div id="reportContent" class="mt-16"></div>
       </div>
 
@@ -192,8 +193,34 @@
       <div id="tabPeople" class="tab-panel">
         <div class="flex-between mt-8">
           <input type="text" id="peopleFilter" placeholder="กรองรายชื่อ (พิมพ์เพื่อค้นหา)..." style="max-width:320px;">
-          <button class="btn btn-primary btn-sm" onclick="openPersonForm(null)">+ เพิ่มผู้ปฏิบัติงาน</button>
+          <div class="flex gap-8">
+            <button class="btn btn-outline btn-sm" id="importPeopleBtn">⬆ นำเข้าจาก Excel</button>
+            <input type="file" id="importPeopleFile" accept=".xlsx,.xls" style="display:none;">
+            <button class="btn btn-primary btn-sm" onclick="openPersonForm(null)">+ เพิ่มผู้ปฏิบัติงาน</button>
+          </div>
         </div>
+
+        <!-- แผงแสดงตัวอย่าง/ความคืบหน้าการนำเข้าจาก Excel -->
+        <div id="importPreviewWrap" class="card mt-16" style="display:none;">
+          <h3 style="margin-top:0;">นำเข้าสมาชิกจากไฟล์ Excel</h3>
+          <p class="text-sm text-soft">
+            รองรับไฟล์รูปแบบ "ข้อมูลสมาชิกสภาวิชาชีพสังคมสงเคราะห์.xlsx" (คอลัมน์: เลขที่สมัครสมาชิก, เลขใบอนุญาต, เลขบัตรประชาชน, ชื่อ, นามสกุล, วันที่เริ่ม/สิ้นสุดการสมัคร, ประเภทที่สมัคร, สถานะ)
+            ระเบียนที่นำเข้าจะยังไม่มีรหัสผ่าน — เจ้าของข้อมูลไปเข้าสู่ระบบด้วย ThaiD หรือกดปุ่ม "ดึงข้อมูลจากสภาฯ" ตอนลงทะเบียนเองภายหลังเพื่อกรอกข้อมูลเพิ่มเติมและตั้งรหัสผ่าน
+          </p>
+          <div id="importSummaryText" class="alert alert-info"></div>
+          <div id="importProgressWrap" style="display:none;">
+            <div style="background:var(--line); border-radius:6px; height:10px; overflow:hidden;">
+              <div id="importProgressBar" style="background:var(--navy); height:100%; width:0%; transition:width .2s;"></div>
+            </div>
+            <p class="text-sm text-soft mt-8" id="importProgressText"></p>
+          </div>
+          <div id="importResultText" class="mt-16"></div>
+          <div class="flex gap-12 mt-16">
+            <button class="btn btn-primary" id="importConfirmBtn">เริ่มนำเข้า</button>
+            <button class="btn btn-ghost" id="importCancelBtn">ยกเลิก</button>
+          </div>
+        </div>
+
         <div class="table-scroll mt-16">
           <table class="data-table">
             <thead><tr><th>รหัส</th><th>ชื่อ-สกุล</th><th>ตำแหน่ง</th><th>หน่วยงาน</th><th>จังหวัด</th><th>สมาชิกภาพ</th><th>ใบอนุญาต</th><th></th></tr></thead>
