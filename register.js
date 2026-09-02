@@ -3,6 +3,19 @@
 // survives the full-page redirect back from ThaiD/Apps Script).
 let currentSession = null;
 
+// ---------------- Modal: ประกาศความเป็นส่วนตัว (PDPA) ----------------
+function openPdpaModal() {
+  document.getElementById('pdpaModal').hidden = false;
+  document.body.style.overflow = 'hidden';
+}
+function closePdpaModal() {
+  document.getElementById('pdpaModal').hidden = true;
+  document.body.style.overflow = '';
+}
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !document.getElementById('pdpaModal').hidden) closePdpaModal();
+});
+
 function showView(id) {
   ['gateView', 'loginView', 'registerView', 'profileView'].forEach(v => {
     document.getElementById(v).style.display = (v === id) ? '' : 'none';

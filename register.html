@@ -82,21 +82,23 @@
       <p class="section-sub">กรอกข้อมูลให้ครบถ้วน ท่านสามารถแก้ไขข้อมูลบางส่วนได้เองภายหลังจากเข้าสู่ระบบ</p>
       <div id="registerAlert"></div>
 
-      <div class="card" style="background:#f7f5f0; border-color:var(--gold);">
-        <h3 style="margin-top:0;">ประกาศความเป็นส่วนตัว (PDPA)</h3>
-        <div class="text-sm" style="max-height:220px; overflow-y:auto; padding-right:8px;">
-          <p><strong>ผู้ควบคุมข้อมูลส่วนบุคคล:</strong> สภาวิชาชีพสังคมสงเคราะห์</p>
-          <p><strong>ข้อมูลที่จัดเก็บ:</strong> ข้อมูลระบุตัวตน (ชื่อ-นามสกุล เลขบัตรประชาชน) ที่อยู่ ข้อมูลติดต่อ วุฒิการศึกษา ประวัติการทำงาน ข้อมูลสมาชิกภาพและใบอนุญาตประกอบวิชาชีพ และความเชี่ยวชาญ</p>
-          <p><strong>วัตถุประสงค์:</strong> เพื่อขึ้นทะเบียน ตรวจสอบคุณสมบัติ และกำกับดูแลมาตรฐานผู้ประกอบวิชาชีพสังคมสงเคราะห์ ตามพระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562</p>
-          <p><strong>การเปิดเผยข้อมูล:</strong> ข้อมูลบางส่วน (ชื่อ-นามสกุล ตำแหน่ง หน่วยงาน สถานะใบอนุญาต) อาจแสดงต่อสาธารณะผ่านระบบตรวจสอบใบอนุญาตออนไลน์ของสภาฯ เพื่อประโยชน์ในการคุ้มครองประชาชนผู้รับบริการ</p>
-          <p><strong>สิทธิของท่าน:</strong> ท่านมีสิทธิขอเข้าถึง แก้ไข ลบ หรือถอนความยินยอมข้อมูลของท่านได้ตลอดเวลา โดยติดต่อ thaisocialworkcouncil@gmail.com</p>
+      <div class="pdpa-consent-card">
+        <div class="flex gap-12" style="align-items:flex-start;">
+          <span class="pdpa-icon">🔒</span>
+          <div>
+            <h3 style="margin:0 0 4px; color:var(--navy-deep);">ความเป็นส่วนตัวของข้อมูล (PDPA)</h3>
+            <p class="text-sm text-soft" style="margin:0;">
+              สภาวิชาชีพสังคมสงเคราะห์เก็บรวบรวมและใช้ข้อมูลของท่านเพื่อจัดทำฐานข้อมูลผู้ประกอบวิชาชีพและกำกับดูแลมาตรฐานวิชาชีพ
+              <button type="button" class="pdpa-link-btn" onclick="openPdpaModal()">อ่านประกาศฉบับเต็ม</button>
+            </p>
+          </div>
         </div>
       </div>
 
       <form id="registerForm" class="card mt-16">
         <label class="text-sm flex gap-8" style="align-items:flex-start; background:#f7f5f0; padding:12px; border-radius:6px; border:1px solid var(--gold);">
           <input type="checkbox" id="registerPdpaConsent" required style="margin-top:3px;">
-          <span>ข้าพเจ้าได้อ่านและยินยอมให้สภาวิชาชีพสังคมสงเคราะห์เก็บรวบรวม ใช้ และเปิดเผยข้อมูลส่วนบุคคลของข้าพเจ้าตามประกาศความเป็นส่วนตัวข้างต้น *</span>
+          <span>ข้าพเจ้าได้อ่านและยินยอมให้สภาวิชาชีพสังคมสงเคราะห์เก็บรวบรวม ใช้ และเปิดเผยข้อมูลส่วนบุคคลของข้าพเจ้าตาม<button type="button" class="pdpa-link-btn" onclick="openPdpaModal()">ประกาศความเป็นส่วนตัว</button> *</span>
         </label>
 
         <h3 class="mt-24">1. ข้อมูลบุคคล</h3>
@@ -291,16 +293,18 @@
         <h3 style="margin-top:0;">แก้ไขข้อมูล</h3>
         <div id="profileAlert"></div>
 
-        <div id="profPdpaBox" class="card" style="background:#f7f5f0; border-color:var(--gold); margin-bottom:16px;">
-          <h4 style="margin-top:0;">ประกาศความเป็นส่วนตัว (PDPA)</h4>
-          <div class="text-sm" style="max-height:180px; overflow-y:auto; padding-right:8px;">
-            <p><strong>ผู้ควบคุมข้อมูลส่วนบุคคล:</strong> สภาวิชาชีพสังคมสงเคราะห์</p>
-            <p><strong>ข้อมูลที่จัดเก็บ:</strong> ข้อมูลระบุตัวตน ที่อยู่ ข้อมูลติดต่อ วุฒิการศึกษา ประวัติการทำงาน ข้อมูลสมาชิกภาพและใบอนุญาตประกอบวิชาชีพ และความเชี่ยวชาญ</p>
-            <p><strong>วัตถุประสงค์:</strong> เพื่อขึ้นทะเบียน ตรวจสอบคุณสมบัติ และกำกับดูแลมาตรฐานผู้ประกอบวิชาชีพสังคมสงเคราะห์ ตามพระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562</p>
-            <p><strong>การเปิดเผยข้อมูล:</strong> ข้อมูลบางส่วน (ชื่อ-นามสกุล ตำแหน่ง หน่วยงาน สถานะใบอนุญาต) อาจแสดงต่อสาธารณะผ่านระบบตรวจสอบใบอนุญาตออนไลน์ของสภาฯ เพื่อประโยชน์ในการคุ้มครองประชาชนผู้รับบริการ</p>
-            <p><strong>สิทธิของท่าน:</strong> ท่านมีสิทธิขอเข้าถึง แก้ไข ลบ หรือถอนความยินยอมข้อมูลของท่านได้ตลอดเวลา โดยติดต่อ thaisocialworkcouncil@gmail.com</p>
+        <div id="profPdpaBox" class="pdpa-consent-card" style="margin-bottom:16px;">
+          <div class="flex gap-12" style="align-items:flex-start; margin-bottom:12px;">
+            <span class="pdpa-icon">🔒</span>
+            <div>
+              <h4 style="margin:0 0 4px; color:var(--navy-deep);">ความเป็นส่วนตัวของข้อมูล (PDPA)</h4>
+              <p class="text-sm text-soft" style="margin:0;">
+                สภาวิชาชีพสังคมสงเคราะห์เก็บรวบรวมและใช้ข้อมูลของท่านเพื่อจัดทำฐานข้อมูลผู้ประกอบวิชาชีพและกำกับดูแลมาตรฐานวิชาชีพ
+                <button type="button" class="pdpa-link-btn" onclick="openPdpaModal()">อ่านประกาศฉบับเต็ม</button>
+              </p>
+            </div>
           </div>
-          <label class="text-sm flex gap-8" style="align-items:flex-start; margin-top:12px;">
+          <label class="text-sm flex gap-8" style="align-items:flex-start;">
             <input type="checkbox" id="profilePdpaConsent" style="margin-top:3px;">
             <span id="profilePdpaConsentLabel">ข้าพเจ้าได้อ่านและยินยอมให้สภาวิชาชีพสังคมสงเคราะห์เก็บรวบรวม ใช้ และเปิดเผยข้อมูลส่วนบุคคลของข้าพเจ้าตามประกาศความเป็นส่วนตัวข้างต้น *</span>
           </label>
@@ -416,6 +420,34 @@
 
   </div>
 </main>
+
+<div class="modal-overlay" id="pdpaModal" hidden onclick="if(event.target===this) closePdpaModal()">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="pdpaModalTitle">
+    <div class="modal-header">
+      <h3 id="pdpaModalTitle">🔒 ประกาศความเป็นส่วนตัว (PDPA)</h3>
+      <button type="button" class="modal-close-btn" onclick="closePdpaModal()" aria-label="ปิด">✕</button>
+    </div>
+    <div class="modal-body">
+      <h4>ผู้ควบคุมข้อมูลส่วนบุคคล</h4>
+      <p>สภาวิชาชีพสังคมสงเคราะห์</p>
+
+      <h4>ข้อมูลที่จัดเก็บ</h4>
+      <p>ข้อมูลระบุตัวตน (ชื่อ-นามสกุล เลขบัตรประชาชน) ที่อยู่ ข้อมูลติดต่อ วุฒิการศึกษา ประวัติการทำงาน ข้อมูลสมาชิกภาพและใบอนุญาตประกอบวิชาชีพ และความเชี่ยวชาญ</p>
+
+      <h4>วัตถุประสงค์</h4>
+      <p>เพื่อจัดทำและปรับปรุงฐานข้อมูลผู้ประกอบวิชาชีพสังคมสงเคราะห์ให้เป็นปัจจุบัน สนับสนุนการกำกับดูแลมาตรฐานและจรรยาบรรณวิชาชีพ การติดต่อสื่อสารแจ้งข้อมูลข่าวสารที่เกี่ยวข้องกับสมาชิกภาพและใบอนุญาต ตลอดจนการจัดทำสถิติและรายงานภาพรวมของผู้ประกอบวิชาชีพในระดับประเทศ ทั้งนี้ เป็นไปตามพระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562</p>
+
+      <h4>การเปิดเผยข้อมูล</h4>
+      <p>ข้อมูลบางส่วน (ชื่อ-นามสกุล ตำแหน่ง หน่วยงาน สถานะใบอนุญาต) อาจแสดงต่อสาธารณะผ่านระบบตรวจสอบใบอนุญาตออนไลน์ของสภาฯ เพื่อประโยชน์ในการคุ้มครองประชาชนผู้รับบริการ</p>
+
+      <h4>สิทธิของท่าน</h4>
+      <p>ท่านมีสิทธิขอเข้าถึง แก้ไข ลบ หรือถอนความยินยอมข้อมูลของท่านได้ตลอดเวลา โดยติดต่อ thaisocialworkcouncil@gmail.com</p>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-navy btn-sm" onclick="closePdpaModal()">ปิดหน้าต่างนี้</button>
+    </div>
+  </div>
+</div>
 
 <footer class="site-footer">
   <div class="container">
