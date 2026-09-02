@@ -4,7 +4,7 @@
  * *** สำคัญ: ต้องแก้ค่า API_URL ด้านล่างให้เป็น URL ของ Web App ที่ deploy จาก Code.gs ***
  * ดูวิธี deploy ได้ใน README.md (โฟลเดอร์ apps-script)
  */
-const API_URL = 'https://script.google.com/macros/s/AKfycbxByRzS9Bvj-E7tgGxLp1rWWsNLmCXBIGpqj7LVIwIwbYoAIzQN6_PcZMzXePmKIVdO/exec';
+const API_URL = 'PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE';
 
 const Api = (() => {
   function withParams(action, params) {
@@ -45,15 +45,15 @@ const Api = (() => {
     courses: (q) => get('courses', { q }),
     workHistory: (personId) => get('workHistory', { personId }),
 
-    register: (data, password, workHistoryEntries, educationEntries) => post('register', { data, password, workHistoryEntries, educationEntries }),
+    register: (data, password, workHistoryEntries, educationEntries, pdpaConsent) => post('register', { data, password, workHistoryEntries, educationEntries, pdpaConsent }),
     selfLogin: (nationalId, password) => post('selfLogin', { nationalId, password }),
-    updateProfile: (nationalId, password, data, educationEntries) => post('updateProfile', { nationalId, password, data, educationEntries }),
+    updateProfile: (nationalId, password, data, educationEntries, workHistoryEntries, pdpaConsent) => post('updateProfile', { nationalId, password, data, educationEntries, workHistoryEntries, pdpaConsent }),
     prefillLookup: (nationalId) => get('prefillLookup', { nationalId }),
 
     // ThaiD (ระบบพิสูจน์และยืนยันตัวตนทางดิจิทัลภาครัฐ)
     thaidLoginUrl: (role, returnPath) => get('thaidLoginUrl', { role, returnPath: returnPath || '' }),
     personMe: (token) => get('personMe', { token }),
-    personUpdateProfileToken: (token, data, educationEntries) => post('personUpdateProfileToken', { token, data, educationEntries }),
+    personUpdateProfileToken: (token, data, educationEntries, workHistoryEntries, pdpaConsent) => post('personUpdateProfileToken', { token, data, educationEntries, workHistoryEntries, pdpaConsent }),
 
     adminLogin: (username, password) => post('adminLogin', { username, password }),
     adminVerifyLoginOtp: (username, otp) => post('adminVerifyLoginOtp', { username, otp }),

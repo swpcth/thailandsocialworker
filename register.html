@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>สำหรับผู้ปฏิบัติงาน — ระบบฐานข้อมูลนักสังคมสงเคราะห์แห่งชาติ</title>
+<title>สำหรับผู้ปฏิบัติงาน — ระบบฐานข้อมูลผู้ปฏิบัติงานสังคมสงเคราะห์ประเทศไทย</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
@@ -13,7 +13,7 @@
   <div class="header-inner">
     <img class="logo" src="logo.png" alt="ตราสภาวิชาชีพสังคมสงเคราะห์">
     <div class="header-titles">
-      <div class="th">ระบบฐานข้อมูลนักสังคมสงเคราะห์แห่งชาติ</div>
+      <div class="th">ระบบฐานข้อมูลผู้ปฏิบัติงานสังคมสงเคราะห์ประเทศไทย</div>
       <div class="sub">สภาวิชาชีพสังคมสงเคราะห์ · Social Work Professions Council</div>
     </div>
     <nav class="main-nav">
@@ -81,8 +81,25 @@
       <h2 class="section-title">ลงทะเบียนผู้ปฏิบัติงาน</h2>
       <p class="section-sub">กรอกข้อมูลให้ครบถ้วน ท่านสามารถแก้ไขข้อมูลบางส่วนได้เองภายหลังจากเข้าสู่ระบบ</p>
       <div id="registerAlert"></div>
-      <form id="registerForm" class="card">
-        <h3 style="margin-top:0;">1. ข้อมูลบุคคล</h3>
+
+      <div class="card" style="background:#f7f5f0; border-color:var(--gold);">
+        <h3 style="margin-top:0;">ประกาศความเป็นส่วนตัว (PDPA)</h3>
+        <div class="text-sm" style="max-height:220px; overflow-y:auto; padding-right:8px;">
+          <p><strong>ผู้ควบคุมข้อมูลส่วนบุคคล:</strong> สภาวิชาชีพสังคมสงเคราะห์</p>
+          <p><strong>ข้อมูลที่จัดเก็บ:</strong> ข้อมูลระบุตัวตน (ชื่อ-นามสกุล เลขบัตรประชาชน) ที่อยู่ ข้อมูลติดต่อ วุฒิการศึกษา ประวัติการทำงาน ข้อมูลสมาชิกภาพและใบอนุญาตประกอบวิชาชีพ และความเชี่ยวชาญ</p>
+          <p><strong>วัตถุประสงค์:</strong> เพื่อขึ้นทะเบียน ตรวจสอบคุณสมบัติ และกำกับดูแลมาตรฐานผู้ประกอบวิชาชีพสังคมสงเคราะห์ ตามพระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562</p>
+          <p><strong>การเปิดเผยข้อมูล:</strong> ข้อมูลบางส่วน (ชื่อ-นามสกุล ตำแหน่ง หน่วยงาน สถานะใบอนุญาต) อาจแสดงต่อสาธารณะผ่านระบบตรวจสอบใบอนุญาตออนไลน์ของสภาฯ เพื่อประโยชน์ในการคุ้มครองประชาชนผู้รับบริการ</p>
+          <p><strong>สิทธิของท่าน:</strong> ท่านมีสิทธิขอเข้าถึง แก้ไข ลบ หรือถอนความยินยอมข้อมูลของท่านได้ตลอดเวลา โดยติดต่อ thaisocialworkcouncil@gmail.com</p>
+        </div>
+      </div>
+
+      <form id="registerForm" class="card mt-16">
+        <label class="text-sm flex gap-8" style="align-items:flex-start; background:#f7f5f0; padding:12px; border-radius:6px; border:1px solid var(--gold);">
+          <input type="checkbox" id="registerPdpaConsent" required style="margin-top:3px;">
+          <span>ข้าพเจ้าได้อ่านและยินยอมให้สภาวิชาชีพสังคมสงเคราะห์เก็บรวบรวม ใช้ และเปิดเผยข้อมูลส่วนบุคคลของข้าพเจ้าตามประกาศความเป็นส่วนตัวข้างต้น *</span>
+        </label>
+
+        <h3 class="mt-24">1. ข้อมูลบุคคล</h3>
         <div class="form-grid">
           <div class="field"><label>คำนำหน้า *</label>
             <select name="Prefix" id="prefixSelect" required>
@@ -274,6 +291,21 @@
         <h3 style="margin-top:0;">แก้ไขข้อมูล</h3>
         <div id="profileAlert"></div>
 
+        <div id="profPdpaBox" class="card" style="background:#f7f5f0; border-color:var(--gold); margin-bottom:16px;">
+          <h4 style="margin-top:0;">ประกาศความเป็นส่วนตัว (PDPA)</h4>
+          <div class="text-sm" style="max-height:180px; overflow-y:auto; padding-right:8px;">
+            <p><strong>ผู้ควบคุมข้อมูลส่วนบุคคล:</strong> สภาวิชาชีพสังคมสงเคราะห์</p>
+            <p><strong>ข้อมูลที่จัดเก็บ:</strong> ข้อมูลระบุตัวตน ที่อยู่ ข้อมูลติดต่อ วุฒิการศึกษา ประวัติการทำงาน ข้อมูลสมาชิกภาพและใบอนุญาตประกอบวิชาชีพ และความเชี่ยวชาญ</p>
+            <p><strong>วัตถุประสงค์:</strong> เพื่อขึ้นทะเบียน ตรวจสอบคุณสมบัติ และกำกับดูแลมาตรฐานผู้ประกอบวิชาชีพสังคมสงเคราะห์ ตามพระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562</p>
+            <p><strong>การเปิดเผยข้อมูล:</strong> ข้อมูลบางส่วน (ชื่อ-นามสกุล ตำแหน่ง หน่วยงาน สถานะใบอนุญาต) อาจแสดงต่อสาธารณะผ่านระบบตรวจสอบใบอนุญาตออนไลน์ของสภาฯ เพื่อประโยชน์ในการคุ้มครองประชาชนผู้รับบริการ</p>
+            <p><strong>สิทธิของท่าน:</strong> ท่านมีสิทธิขอเข้าถึง แก้ไข ลบ หรือถอนความยินยอมข้อมูลของท่านได้ตลอดเวลา โดยติดต่อ thaisocialworkcouncil@gmail.com</p>
+          </div>
+          <label class="text-sm flex gap-8" style="align-items:flex-start; margin-top:12px;">
+            <input type="checkbox" id="profilePdpaConsent" style="margin-top:3px;">
+            <span id="profilePdpaConsentLabel">ข้าพเจ้าได้อ่านและยินยอมให้สภาวิชาชีพสังคมสงเคราะห์เก็บรวบรวม ใช้ และเปิดเผยข้อมูลส่วนบุคคลของข้าพเจ้าตามประกาศความเป็นส่วนตัวข้างต้น *</span>
+          </label>
+        </div>
+
         <h4>ข้อมูลติดต่อ</h4>
         <div class="form-grid">
           <div class="field"><label>เบอร์โทรศัพท์</label><input type="tel" name="Phone"></div>
@@ -366,6 +398,12 @@
           <div class="field"><label>ที่ทำงาน</label><input type="text" name="WorkAddress" placeholder="ที่อยู่สถานที่ทำงาน"></div>
         </div>
 
+        <h4 class="flex-between" style="align-items:center;">
+          <span>ประวัติการทำงาน (หน่วยงาน/ตำแหน่ง ตามช่วงเวลา)</span>
+          <button type="button" class="btn btn-ghost btn-sm" id="profAddWorkHistoryRow">+ เพิ่มประวัติการทำงาน</button>
+        </h4>
+        <div id="profWorkHistoryRows"></div>
+
         <h4>ความเชี่ยวชาญ</h4>
         <div class="form-grid">
           <div class="field" style="grid-column:1 / -1;"><label>สาขา/ด้านความเชี่ยวชาญ (คั่นด้วยจุลภาค)</label><input type="text" name="Specializations" placeholder="เช่น เด็กและครอบครัว, ผู้สูงอายุ, ผู้พิการ, กระบวนการยุติธรรม, สุขภาพ"></div>
@@ -374,17 +412,6 @@
         <p class="text-sm text-soft">เลขที่สมาชิก/ใบอนุญาต และวันที่ออก/หมดอายุ เป็นข้อมูลที่สภาวิชาชีพฯ เป็นผู้ดูแล ดูสถานะล่าสุดได้จากการ์ดด้านบน หากต้องการแก้ไขกรุณาติดต่อเจ้าหน้าที่</p>
         <button type="submit" class="btn btn-primary">บันทึกการแก้ไข</button>
       </form>
-
-      <div class="card mt-16">
-        <h3 style="margin-top:0;">ประวัติการทำงาน</h3>
-        <div class="table-scroll">
-          <table class="data-table">
-            <thead><tr><th>หน่วยงาน</th><th>ตำแหน่ง</th><th>เริ่ม</th><th>สิ้นสุด</th></tr></thead>
-            <tbody id="workHistoryBody"><tr><td colspan="4" class="text-soft">ไม่มีข้อมูล</td></tr></tbody>
-          </table>
-        </div>
-        <p class="text-sm text-soft mt-8">การเพิ่ม/แก้ไขประวัติการทำงานย้อนหลัง ดำเนินการโดยเจ้าหน้าที่สภาวิชาชีพฯ</p>
-      </div>
     </div>
 
   </div>
@@ -392,7 +419,7 @@
 
 <footer class="site-footer">
   <div class="container">
-    <div>© สภาวิชาชีพสังคมสงเคราะห์ · ระบบฐานข้อมูลนักสังคมสงเคราะห์แห่งชาติ</div>
+    <div>© สภาวิชาชีพสังคมสงเคราะห์ · ระบบฐานข้อมูลผู้ปฏิบัติงานสังคมสงเคราะห์ประเทศไทย</div>
     <div>ข้อเสนอแนะ: thaisocialworkcouncil@gmail.com</div>
 
   </div>

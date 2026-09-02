@@ -275,7 +275,7 @@ wireSameAsHouseCheckbox('profileForm', 'profSameAsHouse');
 
 // ---------------- ประวัติการทำงาน (หลายช่วงเวลา) ----------------
 let workHistoryRowCount = 0;
-function addWorkHistoryRow(prefill) {
+function addWorkHistoryRow(containerId, prefill) {
   const id = 'wh' + (workHistoryRowCount++);
   const wrap = document.createElement('div');
   wrap.className = 'card mt-8';
@@ -289,14 +289,13 @@ function addWorkHistoryRow(prefill) {
     </div>
     <button type="button" class="btn btn-ghost btn-sm" onclick="this.closest('[data-row-id]').remove()">ลบแถวนี้</button>
   `;
-  document.getElementById('workHistoryRows').appendChild(wrap);
+  document.getElementById(containerId).appendChild(wrap);
 }
-document.getElementById('addWorkHistoryRow').addEventListener('click', () => addWorkHistoryRow());
 
-function clearWorkHistoryRows() { document.getElementById('workHistoryRows').innerHTML = ''; }
+function clearWorkHistoryRows(containerId) { document.getElementById(containerId).innerHTML = ''; }
 
-function collectWorkHistoryEntries() {
-  return Array.from(document.querySelectorAll('#workHistoryRows [data-row-id]')).map(row => ({
+function collectWorkHistoryEntries(containerId) {
+  return Array.from(document.querySelectorAll(`#${containerId} [data-row-id]`)).map(row => ({
     AgencyName: row.querySelector('.wh-agency').value.trim(),
     Position: row.querySelector('.wh-position').value.trim(),
     StartDate: row.querySelector('.wh-start').value,
@@ -365,6 +364,9 @@ document.getElementById('addEducationRow').addEventListener('click', () => addEd
 document.getElementById('profAddEducationRow').addEventListener('click', () => addEducationRow('profEducationRows'));
 addEducationRow('educationRows'); // เริ่มด้วย 1 แถวว่างให้กรอกได้ทันที
 
+document.getElementById('addWorkHistoryRow').addEventListener('click', () => addWorkHistoryRow('workHistoryRows'));
+document.getElementById('profAddWorkHistoryRow').addEventListener('click', () => addWorkHistoryRow('profWorkHistoryRows'));
+
 
 // ---------------- ดึงข้อมูลจากสภาฯ (สำหรับผู้ที่เคยเป็นสมาชิก/มีข้อมูลอยู่แล้ว) ----------------
 let prefillCache = null; // แคชผลลัพธ์ไว้ ไม่ต้องยิง API ซ้ำทุกปุ่มที่กด
@@ -419,8 +421,8 @@ async function pullFromCouncil(section) {
     setSelectWithOther(document.getElementById('positionTypeSelect'), document.getElementById('positionTypeOther'), p.PositionType || '');
     if (f.PositionLevel) f.PositionLevel.value = p.PositionLevel || '';
     fillAgencyGroup(f, p);
-    clearWorkHistoryRows();
-    (data.workHistory || []).forEach(w => addWorkHistoryRow(w));
+    clearWorkHistoryRows('workHistoryRows');
+    (data.workHistory || []).forEach(w => addWorkHistoryRow('workHistoryRows', w));
   } else if (section === 'membership') {
     ['MembershipNumber', 'MembershipType'].forEach(k => { f[k].value = p[k] || ''; });
     f.MembershipIssueDate.value = toDateInputValue(p.MembershipIssueDate);
@@ -448,6 +450,10 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
   const p2 = document.getElementById('regPassword2').value;
   if (p1 !== p2) { alertBox('registerAlert', 'รหัสผ่านทั้งสองช่องไม่ตรงกัน', 'error'); return; }
   if (p1.length < 8) { alertBox('registerAlert', 'รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร', 'error'); return; }
+  if (!document.getElementById('registerPdpaConsent').checked) {
+    alertBox('registerAlert', 'กรุณายืนยันความยินยอมในการเก็บรวบรวม ใช้ และเปิดเผยข้อมูลส่วนบุคคล (PDPA) ก่อนลงทะเบียน', 'error');
+    return;
+  }
 
   const data = Object.fromEntries(new FormData(form).entries());
   applyOtherOverrides(data);
@@ -459,10 +465,10 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
   const btn = document.getElementById('registerBtn');
   btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> กำลังลงทะเบียน...';
   try {
-    await Api.register(data, p1, collectWorkHistoryEntries(), collectEducationEntries('educationRows'));
+    await Api.register(data, p1, collectWorkHistoryEntries('workHistoryRows'), collectEducationEntries('educationRows'), true);
     toast('ลงทะเบียนสำเร็จ กรุณาเข้าสู่ระบบ');
     form.reset();
-    clearWorkHistoryRows();
+    clearWorkHistoryRows('workHistoryRows');
     clearEducationRows('educationRows');
     addEducationRow('educationRows');
     prefillCache = null;
@@ -471,6 +477,8 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
   } catch (err) {
     const msg = err.message === 'national_id_already_registered'
       ? 'เลขบัตรประชาชนนี้ลงทะเบียนไว้แล้ว กรุณาเข้าสู่ระบบแทน'
+      : err.message === 'pdpa_consent_required'
+      ? 'กรุณายืนยันความยินยอม PDPA ก่อนลงทะเบียน'
       : 'ลงทะเบียนไม่สำเร็จ: ' + err.message;
     alertBox('registerAlert', msg, 'error');
   } finally {
@@ -510,6 +518,20 @@ function logout() {
 function fillProfile(person, workHistory, educationHistory) {
   document.getElementById('profileSubtitle').textContent =
     `${person.Prefix || ''}${person.FirstName} ${person.LastName} · รหัสประจำตัว ${person.PersonID}`;
+
+  const pdpaCheckbox = document.getElementById('profilePdpaConsent');
+  const alreadyConsented = person.PdpaConsent === true || person.PdpaConsent === 'TRUE' || person.PdpaConsent === 'true';
+  if (alreadyConsented) {
+    pdpaCheckbox.checked = true;
+    pdpaCheckbox.removeAttribute('required');
+    document.getElementById('profilePdpaConsentLabel').textContent =
+      `ท่านได้ให้ความยินยอมไว้แล้วเมื่อ ${fmtDate(person.PdpaConsentDate)} (ยกเลิกติ๊กเพื่อถอนความยินยอมและติดต่อเจ้าหน้าที่)`;
+  } else {
+    pdpaCheckbox.checked = false;
+    pdpaCheckbox.setAttribute('required', 'required');
+    document.getElementById('profilePdpaConsentLabel').textContent =
+      'ข้าพเจ้าได้อ่านและยินยอมให้สภาวิชาชีพสังคมสงเคราะห์เก็บรวบรวม ใช้ และเปิดเผยข้อมูลส่วนบุคคลของข้าพเจ้าตามประกาศความเป็นส่วนตัวข้างต้น *';
+  }
 
   document.getElementById('profMembership').textContent = person.MembershipStatus === 'active' ? 'ปกติ' : 'ไม่เป็นสมาชิก';
   document.getElementById('profLicense').textContent = ({
@@ -551,10 +573,9 @@ function fillProfile(person, workHistory, educationHistory) {
   eduList.forEach(e => addEducationRow('profEducationRows', e));
   if (!eduList.length) addEducationRow('profEducationRows');
 
-  const tbody = document.getElementById('workHistoryBody');
-  tbody.innerHTML = (workHistory && workHistory.length)
-    ? workHistory.map(w => `<tr><td>${escapeHtml(w.AgencyName)}</td><td>${escapeHtml(w.Position)}</td><td>${fmtDate(w.StartDate)}</td><td>${w.EndDate ? fmtDate(w.EndDate) : 'ปัจจุบัน'}</td></tr>`).join('')
-    : '<tr><td colspan="4" class="text-soft">ไม่มีข้อมูล</td></tr>';
+  // ประวัติการทำงาน (หลายรายการ แก้ไขได้เอง)
+  clearWorkHistoryRows('profWorkHistoryRows');
+  (workHistory || []).forEach(w => addWorkHistoryRow('profWorkHistoryRows', w));
 }
 
 function fillAgencyGroupProfile(p) {
@@ -573,19 +594,25 @@ function fillAgencyGroupProfile(p) {
 document.getElementById('profileForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   if (!currentSession) { showView('gateView'); return; }
+  const pdpaChecked = document.getElementById('profilePdpaConsent').checked;
+  if (!pdpaChecked) {
+    alertBox('profileAlert', 'กรุณายืนยันความยินยอมในการเก็บรวบรวม ใช้ และเปิดเผยข้อมูลส่วนบุคคล (PDPA) ก่อนบันทึก', 'error');
+    return;
+  }
   const data = Object.fromEntries(new FormData(e.target).entries());
   applyProfileOtherOverrides(data);
   data.Province = data.Current_Province || data.House_Province || '';
   const educationEntries = collectEducationEntries('profEducationRows');
+  const workHistoryEntries = collectWorkHistoryEntries('profWorkHistoryRows');
   try {
     const { person } = (currentSession.mode === 'token')
-      ? await Api.personUpdateProfileToken(currentSession.token, data, educationEntries)
-      : await Api.updateProfile(currentSession.nationalId, currentSession.password, data, educationEntries);
+      ? await Api.personUpdateProfileToken(currentSession.token, data, educationEntries, workHistoryEntries, pdpaChecked)
+      : await Api.updateProfile(currentSession.nationalId, currentSession.password, data, educationEntries, workHistoryEntries, pdpaChecked);
     toast('บันทึกข้อมูลสำเร็จ');
-    const { items: workHistory } = await Api.workHistory(person.PersonID).catch(() => ({ items: [] }));
-    fillProfile(person, workHistory, educationEntries);
+    fillProfile(person, workHistoryEntries, educationEntries);
   } catch (err) {
-    alertBox('profileAlert', 'บันทึกไม่สำเร็จ: ' + err.message, 'error');
+    const msg = err.message === 'pdpa_consent_required' ? 'กรุณายืนยันความยินยอม PDPA ก่อนบันทึกข้อมูล' : 'บันทึกไม่สำเร็จ: ' + err.message;
+    alertBox('profileAlert', msg, 'error');
   }
 });
 
