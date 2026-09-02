@@ -380,3 +380,56 @@ footer.site-footer .container { display: flex; justify-content: space-between; f
 
 /* chart containers */
 .chart-card canvas { max-width: 100%; }
+
+/* ---------- PDPA consent card + modal ---------- */
+.pdpa-consent-card {
+  background: linear-gradient(160deg, #fffaf0, #fdf6e3);
+  border: 1.5px solid var(--gold);
+  border-radius: 10px;
+  padding: 18px 20px;
+}
+.pdpa-consent-card .pdpa-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--gold); color: #fff; font-size: 1.1rem; flex-shrink: 0;
+}
+.pdpa-consent-card label {
+  display: flex; gap: 10px; align-items: flex-start; cursor: pointer;
+}
+.pdpa-consent-card input[type=checkbox] { margin-top: 4px; width: 17px; height: 17px; accent-color: var(--gold); flex-shrink: 0; }
+.pdpa-link-btn {
+  background: none; border: none; padding: 0; color: var(--navy);
+  text-decoration: underline; font-size: inherit; font-family: inherit; cursor: pointer;
+}
+.pdpa-link-btn:hover { color: var(--thai-red); }
+
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(18, 37, 61, 0.55);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 300; padding: 20px; animation: modal-fade-in 0.15s ease-out;
+}
+.modal-overlay[hidden] { display: none; }
+@keyframes modal-fade-in { from { opacity: 0; } to { opacity: 1; } }
+.modal-box {
+  background: #fff; border-radius: 12px; max-width: 640px; width: 100%;
+  max-height: 85vh; display: flex; flex-direction: column;
+  box-shadow: 0 20px 60px rgba(18, 37, 61, 0.35);
+  animation: modal-pop-in 0.18s ease-out;
+}
+@keyframes modal-pop-in { from { opacity: 0; transform: translateY(12px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 24px; border-bottom: 1px solid var(--line);
+}
+.modal-header h3 { margin: 0; color: var(--navy-deep); font-size: 1.15rem; }
+.modal-close-btn {
+  background: #f2f0ea; border: none; width: 32px; height: 32px; border-radius: 50%;
+  font-size: 1.1rem; color: var(--ink-soft); cursor: pointer; line-height: 1;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.modal-close-btn:hover { background: var(--line); color: var(--ink); }
+.modal-body { padding: 20px 24px; overflow-y: auto; font-size: 0.92rem; line-height: 1.75; }
+.modal-body h4 { color: var(--navy-deep); margin: 18px 0 6px; font-size: 0.95rem; }
+.modal-body h4:first-child { margin-top: 0; }
+.modal-body p { margin: 0 0 4px; }
+.modal-footer { padding: 16px 24px; border-top: 1px solid var(--line); text-align: right; }

@@ -4,7 +4,7 @@
  * *** สำคัญ: ต้องแก้ค่า API_URL ด้านล่างให้เป็น URL ของ Web App ที่ deploy จาก Code.gs ***
  * ดูวิธี deploy ได้ใน README.md (โฟลเดอร์ apps-script)
  */
-const API_URL = 'https://script.google.com/macros/s/AKfycbxByRzS9Bvj-E7tgGxLp1rWWsNLmCXBIGpqj7LVIwIwbYoAIzQN6_PcZMzXePmKIVdO/exec';
+const API_URL = 'PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE';
 
 const Api = (() => {
   function withParams(action, params) {
