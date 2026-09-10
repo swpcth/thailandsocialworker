@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>สำหรับผู้ปฏิบัติงาน — ระบบฐานข้อมูลผู้ปฏิบัติงานสังคมสงเคราะห์ประเทศไทย</title><link rel="icon" type="image/png" href="logo.png">
+<title>สำหรับผู้ปฏิบัติงาน — ระบบฐานข้อมูลผู้ปฏิบัติงานสังคมสงเคราะห์ประเทศไทย</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
@@ -29,7 +29,7 @@
 
     <!-- ============ GATE: choose login or register ============ -->
     <div id="gateView">
-      <h2 class="section-title">สำหรับผู้ปฏิบัติงานสังคมสงเคราะห์</h2>
+      <h2 class="section-title">สำหรับผู้ปฏิบัติงานด้านสวัสดิการสังคม</h2>
       <p class="section-sub">ลงทะเบียนหรือเข้าสู่ระบบเพื่อจัดการข้อมูลส่วนตัวของท่าน ตามพระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล (PDPA)</p>
       <div class="card mt-16" style="max-width:680px; border-color:#0b1f38; background:linear-gradient(135deg,#12253d,#1e3a5f); color:#fff;">
         <div class="flex-between" style="flex-wrap:wrap; gap:12px;">
@@ -209,12 +209,15 @@
           <div class="field"><label>สังกัด</label>
             <select name="Sangkad" class="agency-sangkad" required><option value="">เลือกสังกัด</option></select>
           </div>
-          <div class="field"><label>หน่วยงาน/กรม *</label>
-            <select name="AgencyName" class="agency-department" required><option value="">เลือกสังกัดก่อน</option></select>
-            <input type="text" id="agencyNameOther" class="agency-name-other" placeholder="โปรดระบุชื่อหน่วยงาน" style="display:none; margin-top:8px;">
+          <div class="field"><label>กรม *</label>
+            <select name="Department" class="agency-department" required><option value="">เลือกสังกัดก่อน</option></select>
+            <input type="text" id="departmentOther" class="department-other" placeholder="โปรดระบุชื่อกรม" style="display:none; margin-top:8px;">
           </div>
           <div class="field"><label>ประเภทหน่วยงาน</label>
             <select name="AgencyType" class="agency-type"><option value="ภาครัฐ">ภาครัฐ</option><option value="ท้องถิ่น">ท้องถิ่น</option><option value="เอกชน">เอกชน</option><option value="NGO">NGO</option><option value="อื่นๆ">อื่นๆ</option></select>
+          </div>
+          <div class="field" style="grid-column:1 / -1;"><label>ชื่อหน่วยงานที่ปฏิบัติงาน *</label>
+            <input type="text" name="AgencyName" required placeholder="เช่น สำนักงานพัฒนาสังคมและความมั่นคงของมนุษย์จังหวัดเชียงใหม่ / โรงพยาบาลเชียงใหม่">
           </div>
         </div>
 
@@ -392,12 +395,15 @@
           <div class="field"><label>สังกัด</label>
             <select name="Sangkad" class="agency-sangkad"><option value="">เลือกสังกัด</option></select>
           </div>
-          <div class="field"><label>หน่วยงาน/กรม</label>
-            <select name="AgencyName" class="agency-department"><option value="">เลือกสังกัดก่อน</option></select>
-            <input type="text" id="profAgencyNameOther" class="agency-name-other" placeholder="โปรดระบุชื่อหน่วยงาน" style="display:none; margin-top:8px;">
+          <div class="field"><label>กรม</label>
+            <select name="Department" class="agency-department"><option value="">เลือกสังกัดก่อน</option></select>
+            <input type="text" id="profDepartmentOther" class="department-other" placeholder="โปรดระบุชื่อกรม" style="display:none; margin-top:8px;">
           </div>
           <div class="field"><label>ประเภทหน่วยงาน</label>
             <select name="AgencyType" class="agency-type"><option value="ภาครัฐ">ภาครัฐ</option><option value="ท้องถิ่น">ท้องถิ่น</option><option value="เอกชน">เอกชน</option><option value="NGO">NGO</option><option value="อื่นๆ">อื่นๆ</option></select>
+          </div>
+          <div class="field"><label>ชื่อหน่วยงานที่ปฏิบัติงาน</label>
+            <input type="text" name="AgencyName" placeholder="เช่น สำนักงานพัฒนาสังคมและความมั่นคงของมนุษย์จังหวัดเชียงใหม่ / โรงพยาบาลเชียงใหม่">
           </div>
           <div class="field"><label>ที่ทำงาน</label><input type="text" name="WorkAddress" placeholder="ที่อยู่สถานที่ทำงาน"></div>
         </div>

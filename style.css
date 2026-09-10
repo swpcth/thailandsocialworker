@@ -433,3 +433,13 @@ footer.site-footer .container { display: flex; justify-content: space-between; f
 .modal-body h4:first-child { margin-top: 0; }
 .modal-body p { margin: 0 0 4px; }
 .modal-footer { padding: 16px 24px; border-top: 1px solid var(--line); text-align: right; }
+
+/* ---------- Position type breakdown: segmented bar + legend (public home page) ---------- */
+.pos-segmented-bar {
+  display: flex; width: 100%; height: 14px; border-radius: 20px; overflow: hidden;
+  background: var(--line);
+}
+.pos-segmented-bar > div { height: 100%; min-width: 2px; transition: width 0.4s ease-out; }
+.pos-legend { display: flex; flex-wrap: wrap; gap: 10px 28px; margin-top: 18px; }
+.pos-legend-item { display: flex; align-items: center; gap: 8px; font-size: 0.92rem; }
+.pos-legend-dot { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; }

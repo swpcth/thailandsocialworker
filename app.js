@@ -97,6 +97,28 @@ async function loadDashboard() {
     ? `<ol style="padding-left:20px; margin:0;">${topList.map(([prov, n]) => `<li class="mt-8">${escapeHtml(prov)} — <strong>${n.toLocaleString('th-TH')}</strong> คน</li>`).join('')}</ol>`
     : '<p class="text-sm text-soft">ยังไม่มีข้อมูล</p>';
 
+  const posEntries = Object.entries(stats.byPosition || {}).sort((a, b) => b[1] - a[1]);
+  const posTotal = posEntries.reduce((sum, [, n]) => sum + n, 0);
+  const posColors = ['#3d8b7d', '#8b7dd8', '#d8a13d', '#4f9bd8', '#c65f5f', '#5fa85f', '#a85f9b'];
+  document.getElementById('positionTypeList').innerHTML = posEntries.length
+    ? `
+      <div class="pos-segmented-bar">
+        ${posEntries.map(([pos, n], i) => {
+          const pct = posTotal ? (n / posTotal) * 100 : 0;
+          return `<div style="width:${pct}%; background:${posColors[i % posColors.length]};" title="${escapeHtml(pos)}: ${n.toLocaleString('th-TH')} คน (${Math.round(pct)}%)"></div>`;
+        }).join('')}
+      </div>
+      <div class="pos-legend">
+        ${posEntries.map(([pos, n], i) => {
+          const pct = posTotal ? Math.round((n / posTotal) * 100) : 0;
+          return `<div class="pos-legend-item">
+            <span class="pos-legend-dot" style="background:${posColors[i % posColors.length]};"></span>
+            <span>${escapeHtml(pos)}</span> <strong>${n.toLocaleString('th-TH')}</strong> คน <span class="text-soft">(${pct}%)</span>
+          </div>`;
+        }).join('')}
+      </div>`
+    : '<p class="text-sm text-soft">ยังไม่มีข้อมูล</p>';
+
   renderThailandMap('publicMap', byProvince, { height: 480, onProvinceClick: showProvinceDetail });
 }
 

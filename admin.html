@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ผู้ดูแลระบบ — ระบบฐานข้อมูลผู้ปฏิบัติงานสังคมสงเคราะห์ประเทศไทย</title><link rel="icon" type="image/png" href="logo.png">
+<title>ผู้ดูแลระบบ — ระบบฐานข้อมูลผู้ปฏิบัติงานสังคมสงเคราะห์ประเทศไทย</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
@@ -323,12 +323,15 @@
               <div class="field"><label>สังกัด</label>
                 <select name="Sangkad" class="agency-sangkad" id="adm_sangkadSelect"><option value="">เลือกสังกัด</option></select>
               </div>
-              <div class="field"><label>หน่วยงาน/กรม</label>
-                <select name="AgencyName" class="agency-department" id="adm_agencyNameSelect"><option value="">เลือกสังกัดก่อน</option></select>
-                <input type="text" id="adm_agencyNameOther" placeholder="โปรดระบุชื่อหน่วยงาน" style="display:none; margin-top:8px;">
+              <div class="field"><label>กรม</label>
+                <select name="Department" class="agency-department" id="adm_departmentSelect"><option value="">เลือกสังกัดก่อน</option></select>
+                <input type="text" id="adm_departmentOther" class="department-other" placeholder="โปรดระบุชื่อกรม" style="display:none; margin-top:8px;">
               </div>
               <div class="field"><label>ประเภทหน่วยงาน</label>
                 <select name="AgencyType" class="agency-type"><option>ภาครัฐ</option><option>ท้องถิ่น</option><option>เอกชน</option><option>NGO</option><option>อื่นๆ</option></select>
+              </div>
+              <div class="field"><label>ชื่อหน่วยงานที่ปฏิบัติงาน</label>
+                <input type="text" name="AgencyName" placeholder="เช่น สำนักงานพัฒนาสังคมและความมั่นคงของมนุษย์จังหวัดเชียงใหม่">
               </div>
               <div class="field"><label>ที่ทำงาน</label><input type="text" name="WorkAddress" placeholder="ที่อยู่สถานที่ทำงาน"></div>
               <div class="field"><label>ความเชี่ยวชาญ</label><input type="text" name="Specializations"></div>
@@ -408,8 +411,8 @@
         </div>
         <div class="table-scroll mt-16">
           <table class="data-table">
-            <thead><tr><th>สังกัด</th><th>ชื่อหน่วยงาน</th><th>ประเภท</th><th>จังหวัด</th></tr></thead>
-            <tbody id="agenciesTableBody"><tr><td colspan="4" class="text-soft">กำลังโหลด...</td></tr></tbody>
+            <thead><tr><th>สังกัด</th><th>กรม</th><th>ชื่อหน่วยงาน</th><th>ประเภท</th><th>จังหวัด</th></tr></thead>
+            <tbody id="agenciesTableBody"><tr><td colspan="5" class="text-soft">กำลังโหลด...</td></tr></tbody>
           </table>
         </div>
         <div id="agencyFormWrap" style="display:none;" class="card mt-16">
@@ -417,12 +420,20 @@
           <form id="agencyForm">
             <input type="hidden" name="AgencyID">
             <div class="form-grid">
-              <div class="field"><label>สังกัด (กระทรวง/หน่วยงานระดับบน)</label><input type="text" name="Sangkad" placeholder="เช่น กระทรวงการพัฒนาสังคมและความมั่นคงของมนุษย์"></div>
-              <div class="field"><label>ชื่อหน่วยงาน *</label><input type="text" name="AgencyName" required></div>
+              <div class="field"><label>สังกัด</label>
+                <select name="Sangkad" class="agency-sangkad" id="agf_sangkadSelect"><option value="">เลือกสังกัด</option></select>
+              </div>
+              <div class="field"><label>กรม</label>
+                <select name="Department" class="agency-department" id="agf_departmentSelect"><option value="">เลือกสังกัดก่อน</option></select>
+                <input type="text" id="agf_departmentOther" class="department-other" placeholder="โปรดระบุชื่อกรม" style="display:none; margin-top:8px;">
+              </div>
               <div class="field"><label>ประเภทหน่วยงาน</label>
-                <select name="AgencyType"><option>ภาครัฐ</option><option>ท้องถิ่น</option><option>เอกชน</option><option>NGO</option><option>อื่นๆ</option></select>
+                <select name="AgencyType" class="agency-type"><option>ภาครัฐ</option><option>ท้องถิ่น</option><option>เอกชน</option><option>NGO</option><option>อื่นๆ</option></select>
               </div>
               <div class="field"><label>จังหวัด</label><input type="text" name="Province"></div>
+              <div class="field" style="grid-column:1 / -1;"><label>ชื่อหน่วยงานเฉพาะ (ถ้ามี — เว้นว่างหมายถึงระดับกรม)</label>
+                <input type="text" name="AgencyName" placeholder="เช่น โรงพยาบาลเชียงใหม่ / สำนักงานพัฒนาสังคมฯ จังหวัดเชียงใหม่">
+              </div>
             </div>
             <div class="flex gap-12">
               <button type="submit" class="btn btn-primary">บันทึก</button>

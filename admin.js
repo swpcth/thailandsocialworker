@@ -329,7 +329,23 @@ async function renderReport(type) {
   } else if (type === 'agency') {
     el.innerHTML = `
       <div class="card"><h3 style="margin-top:0;">แยกตามประเภทหน่วยงาน</h3>${renderCountTable(groupBy(people, p => p.AgencyType), ['ประเภทหน่วยงาน', 'จำนวน'])}</div>
-      <div class="card mt-16"><h3 style="margin-top:0;">แยกตามหน่วยงานรายแห่ง</h3>${renderCountTable(groupBy(people, p => p.AgencyName), ['หน่วยงาน', 'จำนวน'])}</div>`;
+      <div class="card mt-16">
+        <div class="flex-between" style="align-items:center;">
+          <h3 style="margin:0;">แยกตามระดับที่เลือก</h3>
+          <select id="agencyLevelSelect" style="max-width:220px;">
+            <option value="sangkad">รายสังกัด</option>
+            <option value="department">รายกรม</option>
+            <option value="agencyName">รายหน่วยงานเฉพาะ</option>
+          </select>
+        </div>
+        <div id="agencyLevelTable" class="mt-16">${renderCountTable(groupBy(people, p => p.Sangkad), ['สังกัด', 'จำนวน'])}</div>
+      </div>`;
+    document.getElementById('agencyLevelSelect').addEventListener('change', (e) => {
+      const level = e.target.value;
+      const keyFn = level === 'sangkad' ? (p => p.Sangkad) : level === 'department' ? (p => p.Department) : (p => p.AgencyName);
+      const labelMap = { sangkad: 'สังกัด', department: 'กรม', agencyName: 'หน่วยงาน' };
+      document.getElementById('agencyLevelTable').innerHTML = renderCountTable(groupBy(people, keyFn), [labelMap[level], 'จำนวน']);
+    });
   } else if (type === 'position') {
     el.innerHTML = `<div class="card"><h3 style="margin-top:0;">แยกตามประเภทตำแหน่งงาน</h3>${renderCountTable(groupBy(people, p => p.PositionType), ['ตำแหน่งงาน', 'จำนวน'])}</div>`;
   } else if (type === 'license') {
@@ -627,6 +643,8 @@ function applyAdminOtherOverrides(data) {
   if (data.EducationLevel === 'อื่นๆ' && eduOther) data.EducationLevel = eduOther;
   const posOther = document.getElementById('adm_positionTypeOther').value.trim();
   if (data.PositionType === 'อื่นๆ' && posOther) data.PositionType = posOther;
+  const deptOther = document.getElementById('adm_departmentOther').value.trim();
+  if (data.Department === 'อื่นๆ' && deptOther) data.Department = deptOther;
   return data;
 }
 
@@ -733,13 +751,15 @@ document.getElementById('adm_sameAsHouse').addEventListener('change', (e) => {
 });
 
 // ---------------- สังกัด/หน่วยงาน: cascading dropdown จากไฟล์ "ข้อมูลสังกัด และกรมทั้งหมด" ----------------
-function initAdminAgencyDropdowns() {
+function initAdminAgencyDropdowns(root) {
   const data = window.AGENCY_DATA;
-  const sangkadSel = document.getElementById('adm_sangkadSelect');
-  const deptSel = document.getElementById('adm_agencyNameSelect');
-  const typeSel = document.querySelector('#personForm .agency-type');
-  const otherInput = document.getElementById('adm_agencyNameOther');
+  const sangkadSel = root.querySelector('.agency-sangkad');
+  const deptSel = root.querySelector('.agency-department');
+  const typeSel = root.querySelector('.agency-type');
+  const otherInput = root.querySelector('.department-other');
   if (!data || !sangkadSel || !deptSel) return;
+  if (sangkadSel.dataset.filled) return;
+  sangkadSel.dataset.filled = '1';
 
   data.sangkad.forEach(s => {
     const opt = document.createElement('option');
@@ -749,7 +769,7 @@ function initAdminAgencyDropdowns() {
 
   sangkadSel.addEventListener('change', () => {
     const sangkad = sangkadSel.value;
-    deptSel.innerHTML = '<option value="">เลือกหน่วยงาน</option>';
+    deptSel.innerHTML = '<option value="">เลือกกรม</option>';
     if (otherInput) { otherInput.style.display = 'none'; otherInput.value = ''; }
     if (!sangkad) return;
     data.departments.filter(d => d.sangkad === sangkad).forEach(d => {
@@ -772,17 +792,20 @@ function initAdminAgencyDropdowns() {
     });
   }
 }
-initAdminAgencyDropdowns();
+initAdminAgencyDropdowns(document.getElementById('personForm'));
+initAdminAgencyDropdowns(document.getElementById('agencyForm'));
 
 function fillAdminAgencyGroup(form, p) {
-  const sangkadSel = form.Sangkad, deptSel = form.AgencyName;
+  const sangkadSel = form.Sangkad, deptSel = form.Department;
   if (!sangkadSel) return;
+  const otherInput = form.querySelector('.department-other');
   sangkadSel.value = p.Sangkad || '';
   sangkadSel.dispatchEvent(new Event('change'));
   setTimeout(() => {
-    setAdminSelectWithOther(deptSel, document.getElementById('adm_agencyNameOther'), p.AgencyName || '');
+    setAdminSelectWithOther(deptSel, otherInput, p.Department || '');
     deptSel.dispatchEvent(new Event('change'));
   }, 0);
+  if (form.AgencyName) form.AgencyName.value = p.AgencyName || '';
 }
 
 // ---------------- รายชื่อสถาบันการศึกษา (autocomplete แบบพิมพ์เพิ่มเองได้) ----------------
@@ -809,11 +832,11 @@ function openPersonForm(personId) {
   const form = document.getElementById('personForm');
   form.reset();
   ['House_District', 'House_Subdistrict', 'Current_District', 'Current_Subdistrict'].forEach(f => { form[f].innerHTML = '<option value="">เลือกจังหวัดก่อน</option>'; });
-  document.getElementById('adm_agencyNameSelect').innerHTML = '<option value="">เลือกสังกัดก่อน</option>';
+  document.getElementById('adm_departmentSelect').innerHTML = '<option value="">เลือกสังกัดก่อน</option>';
   document.getElementById('adm_prefixOther').style.display = 'none';
   document.getElementById('adm_eduLevelOther').style.display = 'none';
   document.getElementById('adm_positionTypeOther').style.display = 'none';
-  document.getElementById('adm_agencyNameOther').style.display = 'none';
+  document.getElementById('adm_departmentOther').style.display = 'none';
   document.getElementById('adm_sameAsHouse').checked = false;
   document.getElementById('personFormAlert').innerHTML = '';
   wrap.style.display = '';
@@ -824,7 +847,7 @@ function openPersonForm(personId) {
     if (p) {
       const addressFields = new Set(['House_Province', 'House_District', 'House_Subdistrict', 'Current_Province', 'Current_District', 'Current_Subdistrict']);
       Object.keys(p).forEach(k => {
-        if (form[k] && !addressFields.has(k) && k !== 'Prefix' && k !== 'EducationLevel' && k !== 'PositionType' && k !== 'Sangkad' && k !== 'AgencyName') {
+        if (form[k] && !addressFields.has(k) && k !== 'Prefix' && k !== 'EducationLevel' && k !== 'PositionType' && k !== 'Sangkad' && k !== 'Department') {
           form[k].value = p[k] instanceof Date ? '' : (p[k] || '');
         }
       });
@@ -921,15 +944,17 @@ async function loadAgencies() {
     const { items } = await Api.adminAgencies();
     agenciesCache = items;
     document.getElementById('agenciesTableBody').innerHTML = items.length ? items.map(a => `
-      <tr><td>${escapeHtml(a.Sangkad || '-')}</td><td>${escapeHtml(a.AgencyName)}</td><td>${escapeHtml(a.AgencyType || '-')}</td><td>${escapeHtml(a.Province || '-')}</td></tr>
-    `).join('') : '<tr><td colspan="4" class="text-soft">ไม่มีข้อมูล</td></tr>';
+      <tr><td>${escapeHtml(a.Sangkad || '-')}</td><td>${escapeHtml(a.Department || '-')}</td><td>${escapeHtml(a.AgencyName || '-')}</td><td>${escapeHtml(a.AgencyType || '-')}</td><td>${escapeHtml(a.Province || '-')}</td></tr>
+    `).join('') : '<tr><td colspan="5" class="text-soft">ไม่มีข้อมูล</td></tr>';
   } catch (e) {
-    document.getElementById('agenciesTableBody').innerHTML = `<tr><td colspan="4" class="text-soft">โหลดไม่สำเร็จ: ${escapeHtml(e.message)}</td></tr>`;
+    document.getElementById('agenciesTableBody').innerHTML = `<tr><td colspan="5" class="text-soft">โหลดไม่สำเร็จ: ${escapeHtml(e.message)}</td></tr>`;
   }
 }
 
 function openAgencyForm() {
   document.getElementById('agencyForm').reset();
+  document.getElementById('agf_departmentSelect').innerHTML = '<option value="">เลือกสังกัดก่อน</option>';
+  document.getElementById('agf_departmentOther').style.display = 'none';
   document.getElementById('agencyFormWrap').style.display = '';
   document.getElementById('agencyFormWrap').scrollIntoView({ behavior: 'smooth' });
 }
@@ -938,6 +963,9 @@ document.getElementById('agencyForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const data = Object.fromEntries(new FormData(e.target).entries());
   if (!data.AgencyID) delete data.AgencyID;
+  const deptOther = document.getElementById('agf_departmentOther');
+  if (data.Department === 'อื่นๆ' && deptOther.value.trim()) data.Department = deptOther.value.trim();
+  if (!data.AgencyName) data.AgencyName = data.Department; // เว้นว่างชื่อหน่วยงานเฉพาะ = ใช้ชื่อกรมแทน (ระดับกรม)
   try {
     await Api.adminUpsertAgency(adminToken, data);
     toast('บันทึกสำเร็จ');

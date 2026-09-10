@@ -87,8 +87,8 @@ function applyOtherOverrides(data) {
   if (data.PositionType === 'อื่นๆ' && posOther) data.PositionType = posOther;
   const practiceOther = document.getElementById('practiceStatusOther').value.trim();
   if (data.PracticeStatus === 'อื่นๆ' && practiceOther) data.PracticeStatus = practiceOther;
-  const agencyOther = document.getElementById('agencyNameOther').value.trim();
-  if (data.AgencyName === 'อื่นๆ' && agencyOther) data.AgencyName = agencyOther;
+  const deptOther = document.getElementById('departmentOther');
+  if (deptOther && data.Department === 'อื่นๆ' && deptOther.value.trim()) data.Department = deptOther.value.trim();
   return data;
 }
 
@@ -98,8 +98,8 @@ function applyProfileOtherOverrides(data) {
   if (posOther && data.PositionType === 'อื่นๆ' && posOther.value.trim()) data.PositionType = posOther.value.trim();
   const practiceOther = document.getElementById('profPracticeStatusOther');
   if (practiceOther && data.PracticeStatus === 'อื่นๆ' && practiceOther.value.trim()) data.PracticeStatus = practiceOther.value.trim();
-  const agencyOther = document.getElementById('profAgencyNameOther');
-  if (agencyOther && data.AgencyName === 'อื่นๆ' && agencyOther.value.trim()) data.AgencyName = agencyOther.value.trim();
+  const deptOther = document.getElementById('profDepartmentOther');
+  if (deptOther && data.Department === 'อื่นๆ' && deptOther.value.trim()) data.Department = deptOther.value.trim();
   return data;
 }
 
@@ -110,7 +110,7 @@ function initAgencyDropdowns(root = document) {
   const sangkadSel = root.querySelector('.agency-sangkad');
   const deptSel = root.querySelector('.agency-department');
   const typeSel = root.querySelector('.agency-type');
-  const otherInput = root.querySelector('.agency-name-other');
+  const deptOtherInput = root.querySelector('.department-other');
   if (!data || !sangkadSel || !deptSel) return;
   if (sangkadSel.dataset.filled) return; // กันเติมตัวเลือกซ้ำ
   sangkadSel.dataset.filled = '1';
@@ -123,15 +123,15 @@ function initAgencyDropdowns(root = document) {
 
   sangkadSel.addEventListener('change', () => {
     const sangkad = sangkadSel.value;
-    deptSel.innerHTML = '<option value="">เลือกหน่วยงาน</option>';
-    if (otherInput) { otherInput.style.display = 'none'; otherInput.value = ''; }
+    deptSel.innerHTML = '<option value="">เลือกกรม</option>';
+    if (deptOtherInput) { deptOtherInput.style.display = 'none'; deptOtherInput.value = ''; }
     if (!sangkad) return;
     data.departments.filter(d => d.sangkad === sangkad).forEach(d => {
       const opt = document.createElement('option');
       opt.value = d.name; opt.textContent = d.name;
       deptSel.appendChild(opt);
     });
-    // เผื่อหน่วยงานย่อยจริงไม่อยู่ในรายการ (เช่น รพ./สำนักงานสาขา) ให้เลือก "อื่นๆ" แล้วพิมพ์เองได้เสมอ
+    // เผื่อกรมจริงไม่อยู่ในรายการ ให้เลือก "อื่นๆ" แล้วพิมพ์เองได้เสมอ
     const otherOpt = document.createElement('option');
     otherOpt.value = 'อื่นๆ'; otherOpt.textContent = 'อื่นๆ (ระบุเอง)';
     deptSel.appendChild(otherOpt);
@@ -140,10 +140,10 @@ function initAgencyDropdowns(root = document) {
     if (typeSel && matched) typeSel.value = matched.agencyType;
   });
 
-  if (otherInput) {
+  if (deptOtherInput) {
     deptSel.addEventListener('change', () => {
-      otherInput.style.display = (deptSel.value === 'อื่นๆ') ? '' : 'none';
-      if (deptSel.value !== 'อื่นๆ') otherInput.value = '';
+      deptOtherInput.style.display = (deptSel.value === 'อื่นๆ') ? '' : 'none';
+      if (deptSel.value !== 'อื่นๆ') deptOtherInput.value = '';
     });
   }
 }
@@ -151,15 +151,16 @@ initAgencyDropdowns(document.getElementById('registerForm'));
 initAgencyDropdowns(document.getElementById('profileForm'));
 
 function fillAgencyGroup(form, p) {
-  const sangkadSel = form.Sangkad, deptSel = form.AgencyName;
+  const sangkadSel = form.Sangkad, deptSel = form.Department;
   if (!sangkadSel) return;
-  const otherInput = form.querySelector('.agency-name-other');
+  const deptOtherInput = form.querySelector('.department-other');
   sangkadSel.value = p.Sangkad || '';
   sangkadSel.dispatchEvent(new Event('change'));
   setTimeout(() => {
-    setSelectWithOther(deptSel, otherInput, p.AgencyName || '');
+    setSelectWithOther(deptSel, deptOtherInput, p.Department || '');
     deptSel.dispatchEvent(new Event('change'));
   }, 0);
+  if (form.AgencyName) form.AgencyName.value = p.AgencyName || '';
 }
 
 // ---------------- รายชื่อสถาบันการศึกษา (autocomplete แบบพิมพ์เพิ่มเองได้) ----------------
@@ -593,15 +594,16 @@ function fillProfile(person, workHistory, educationHistory) {
 
 function fillAgencyGroupProfile(p) {
   const form = document.getElementById('profileForm');
-  const sangkadSel = form.Sangkad, deptSel = form.AgencyName;
+  const sangkadSel = form.Sangkad, deptSel = form.Department;
   if (!sangkadSel) return;
-  const otherInput = form.querySelector('.agency-name-other');
+  const deptOtherInput = form.querySelector('.department-other');
   sangkadSel.value = p.Sangkad || '';
   sangkadSel.dispatchEvent(new Event('change'));
   setTimeout(() => {
-    setSelectWithOther(deptSel, otherInput, p.AgencyName || '');
+    setSelectWithOther(deptSel, deptOtherInput, p.Department || '');
     deptSel.dispatchEvent(new Event('change'));
   }, 0);
+  if (form.AgencyName) form.AgencyName.value = p.AgencyName || '';
 }
 
 document.getElementById('profileForm').addEventListener('submit', async (e) => {
