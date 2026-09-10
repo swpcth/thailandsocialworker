@@ -333,8 +333,27 @@
               <div class="field"><label>ชื่อหน่วยงานที่ปฏิบัติงาน</label>
                 <input type="text" name="AgencyName" placeholder="เช่น สำนักงานพัฒนาสังคมและความมั่นคงของมนุษย์จังหวัดเชียงใหม่">
               </div>
-              <div class="field"><label>ที่ทำงาน</label><input type="text" name="WorkAddress" placeholder="ที่อยู่สถานที่ทำงาน"></div>
               <div class="field"><label>ความเชี่ยวชาญ</label><input type="text" name="Specializations"></div>
+            </div>
+
+            <h4>
+              ที่ทำงาน
+              <label class="text-sm text-soft" style="font-weight:400; margin-left:12px;">
+                <input type="checkbox" id="adm_sameAsCurrentWork"> ใช้ที่อยู่เดียวกับที่อยู่ปัจจุบัน
+              </label>
+            </h4>
+            <div class="form-grid">
+              <div class="field"><label>บ้านเลขที่</label><input type="text" name="Work_No"></div>
+              <div class="field"><label>หมู่บ้าน</label><input type="text" name="Work_Village"></div>
+              <div class="field"><label>อาคาร/ชั้น</label><input type="text" name="Work_Building"></div>
+              <div class="field"><label>ซอย</label><input type="text" name="Work_Soi"></div>
+              <div class="field"><label>ถนน</label><input type="text" name="Work_Road"></div>
+            </div>
+            <div class="form-grid">
+              <div class="field"><label>จังหวัด</label><select name="Work_Province" class="addr-province" data-group="Work"><option value="">เลือกจังหวัด</option></select></div>
+              <div class="field"><label>อำเภอ/เขต</label><select name="Work_District" class="addr-district" data-group="Work"><option value="">เลือกจังหวัดก่อน</option></select></div>
+              <div class="field"><label>ตำบล/แขวง</label><select name="Work_Subdistrict" class="addr-subdistrict" data-group="Work"><option value="">เลือกอำเภอก่อน</option></select></div>
+              <div class="field"><label>รหัสไปรษณีย์</label><input type="text" name="Work_Zipcode" class="addr-zipcode" data-group="Work" readonly></div>
             </div>
 
             <h4>สมาชิกภาพ/ใบอนุญาต/สถานะ</h4>

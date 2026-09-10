@@ -731,23 +731,26 @@ function fillAdminAddressGroup(form, group, p) {
   }, 0);
 }
 
-const adminCurrentAddrFields = ['Current_No', 'Current_Village', 'Current_Building', 'Current_Soi', 'Current_Road'];
-function copyAdminHouseToCurrent() {
+const ADM_ADDR_SUB_FIELDS = ['No', 'Village', 'Building', 'Soi', 'Road'];
+function copyAdminAddressGroup(fromGroup, toGroup) {
   const form = document.getElementById('personForm');
-  adminCurrentAddrFields.forEach(f => { form[f].value = form[f.replace('Current_', 'House_')].value; });
-  const hProv = form.House_Province, hDist = form.House_District, hSub = form.House_Subdistrict;
-  const cProv = form.Current_Province, cDist = form.Current_District, cSub = form.Current_Subdistrict, cZip = form.Current_Zipcode;
-  cProv.value = hProv.value; cProv.dispatchEvent(new Event('change'));
+  ADM_ADDR_SUB_FIELDS.forEach(f => { form[`${toGroup}_${f}`].value = form[`${fromGroup}_${f}`].value; });
+  const fProv = form[`${fromGroup}_Province`], fDist = form[`${fromGroup}_District`], fSub = form[`${fromGroup}_Subdistrict`];
+  const tProv = form[`${toGroup}_Province`], tDist = form[`${toGroup}_District`], tSub = form[`${toGroup}_Subdistrict`], tZip = form[`${toGroup}_Zipcode`];
+  tProv.value = fProv.value; tProv.dispatchEvent(new Event('change'));
   setTimeout(() => {
-    cDist.value = hDist.value; cDist.dispatchEvent(new Event('change'));
+    tDist.value = fDist.value; tDist.dispatchEvent(new Event('change'));
     setTimeout(() => {
-      cSub.value = hSub.value; cSub.dispatchEvent(new Event('change'));
-      cZip.value = form.House_Zipcode.value;
+      tSub.value = fSub.value; tSub.dispatchEvent(new Event('change'));
+      tZip.value = form[`${fromGroup}_Zipcode`].value;
     }, 0);
   }, 0);
 }
 document.getElementById('adm_sameAsHouse').addEventListener('change', (e) => {
-  if (e.target.checked) copyAdminHouseToCurrent();
+  if (e.target.checked) copyAdminAddressGroup('House', 'Current');
+});
+document.getElementById('adm_sameAsCurrentWork').addEventListener('change', (e) => {
+  if (e.target.checked) copyAdminAddressGroup('Current', 'Work');
 });
 
 // ---------------- สังกัด/หน่วยงาน: cascading dropdown จากไฟล์ "ข้อมูลสังกัด และกรมทั้งหมด" ----------------
@@ -831,13 +834,14 @@ function openPersonForm(personId) {
   const wrap = document.getElementById('personFormWrap');
   const form = document.getElementById('personForm');
   form.reset();
-  ['House_District', 'House_Subdistrict', 'Current_District', 'Current_Subdistrict'].forEach(f => { form[f].innerHTML = '<option value="">เลือกจังหวัดก่อน</option>'; });
+  ['House_District', 'House_Subdistrict', 'Current_District', 'Current_Subdistrict', 'Work_District', 'Work_Subdistrict'].forEach(f => { form[f].innerHTML = '<option value="">เลือกจังหวัดก่อน</option>'; });
   document.getElementById('adm_departmentSelect').innerHTML = '<option value="">เลือกสังกัดก่อน</option>';
   document.getElementById('adm_prefixOther').style.display = 'none';
   document.getElementById('adm_eduLevelOther').style.display = 'none';
   document.getElementById('adm_positionTypeOther').style.display = 'none';
   document.getElementById('adm_departmentOther').style.display = 'none';
   document.getElementById('adm_sameAsHouse').checked = false;
+  document.getElementById('adm_sameAsCurrentWork').checked = false;
   document.getElementById('personFormAlert').innerHTML = '';
   wrap.style.display = '';
   document.getElementById('personFormTitle').textContent = personId ? 'แก้ไขข้อมูลผู้ปฏิบัติงาน' : 'เพิ่มผู้ปฏิบัติงาน';
@@ -845,7 +849,7 @@ function openPersonForm(personId) {
   if (personId) {
     const p = peopleCache.find(x => x.PersonID === personId);
     if (p) {
-      const addressFields = new Set(['House_Province', 'House_District', 'House_Subdistrict', 'Current_Province', 'Current_District', 'Current_Subdistrict']);
+      const addressFields = new Set(['House_Province', 'House_District', 'House_Subdistrict', 'Current_Province', 'Current_District', 'Current_Subdistrict', 'Work_Province', 'Work_District', 'Work_Subdistrict']);
       Object.keys(p).forEach(k => {
         if (form[k] && !addressFields.has(k) && k !== 'Prefix' && k !== 'EducationLevel' && k !== 'PositionType' && k !== 'Sangkad' && k !== 'Department') {
           form[k].value = p[k] instanceof Date ? '' : (p[k] || '');
@@ -857,6 +861,7 @@ function openPersonForm(personId) {
       setAdminSelectWithOther(form.PositionType, document.getElementById('adm_positionTypeOther'), p.PositionType || '');
       fillAdminAddressGroup(form, 'House', p);
       fillAdminAddressGroup(form, 'Current', p);
+      fillAdminAddressGroup(form, 'Work', p);
       fillAdminAgencyGroup(form, p);
       ['MembershipExpireDate', 'LicenseExpireDate'].forEach(f => {
         if (p[f]) form[f].value = new Date(p[f]).toISOString().slice(0, 10);

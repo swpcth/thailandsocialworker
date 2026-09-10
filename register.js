@@ -241,51 +241,51 @@ function initAddressDropdowns(root = document) {
 initAddressDropdowns(document.getElementById('registerForm'));
 initAddressDropdowns(document.getElementById('profileForm'));
 
-// ---------------- "ใช้ที่อยู่เดียวกับทะเบียนบ้าน" ----------------
-const currentAddrFields = ['Current_No', 'Current_Village', 'Current_Building', 'Current_Soi', 'Current_Road'];
+// ---------------- "ใช้ที่อยู่เดียวกับ..." (ใช้ได้กับทุกคู่กลุ่มที่อยู่ เช่น House→Current, Current→Work) ----------------
+const ADDR_SUB_FIELDS = ['No', 'Village', 'Building', 'Soi', 'Road'];
 
-function copyHouseToCurrentFor(formId) {
+function copyAddressGroup(formId, fromGroup, toGroup) {
   const form = document.getElementById(formId);
-  currentAddrFields.forEach(f => { form[f].value = form[f.replace('Current_', 'House_')].value; });
+  ADDR_SUB_FIELDS.forEach(f => { form[`${toGroup}_${f}`].value = form[`${fromGroup}_${f}`].value; });
   // คัดลอกจังหวัด/อำเภอ/ตำบล โดยจำลองการเลือกผ่าน dropdown เพื่อให้ตัวเลือกลูกถูกเติมตาม
-  const hProv = form.House_Province, hDist = form.House_District, hSub = form.House_Subdistrict;
-  const cProv = form.Current_Province, cDist = form.Current_District, cSub = form.Current_Subdistrict, cZip = form.Current_Zipcode;
-  cProv.value = hProv.value; cProv.dispatchEvent(new Event('change'));
+  const fProv = form[`${fromGroup}_Province`], fDist = form[`${fromGroup}_District`], fSub = form[`${fromGroup}_Subdistrict`];
+  const tProv = form[`${toGroup}_Province`], tDist = form[`${toGroup}_District`], tSub = form[`${toGroup}_Subdistrict`], tZip = form[`${toGroup}_Zipcode`];
+  tProv.value = fProv.value; tProv.dispatchEvent(new Event('change'));
   setTimeout(() => {
-    cDist.value = hDist.value; cDist.dispatchEvent(new Event('change'));
+    tDist.value = fDist.value; tDist.dispatchEvent(new Event('change'));
     setTimeout(() => {
-      cSub.value = hSub.value; cSub.dispatchEvent(new Event('change'));
-      cZip.value = form.House_Zipcode.value;
+      tSub.value = fSub.value; tSub.dispatchEvent(new Event('change'));
+      tZip.value = form[`${fromGroup}_Zipcode`].value;
     }, 0);
   }, 0);
 }
-function copyHouseToCurrent() { copyHouseToCurrentFor('registerForm'); }
 
-function wireSameAsHouseCheckbox(formId, checkboxId) {
+function wireCopyAddressCheckbox(formId, checkboxId, fromGroup, toGroup) {
   const checkbox = document.getElementById(checkboxId);
   if (!checkbox) return;
+  const toFields = [...ADDR_SUB_FIELDS.map(f => `${toGroup}_${f}`), `${toGroup}_Province`, `${toGroup}_District`, `${toGroup}_Subdistrict`, `${toGroup}_Zipcode`];
   checkbox.addEventListener('change', (e) => {
-    const fields = [...currentAddrFields, 'Current_Province', 'Current_District', 'Current_Subdistrict', 'Current_Zipcode'];
     const form = document.getElementById(formId);
     if (e.target.checked) {
-      copyHouseToCurrentFor(formId);
-      fields.forEach(f => form[f].setAttribute('readonly', 'readonly'));
-      form.Current_Province.disabled = false; // select ใช้ readonly ไม่ได้ ต้องล็อกด้วยวิธีอื่น
-      ['Current_Province', 'Current_District', 'Current_Subdistrict'].forEach(f => form[f].style.pointerEvents = 'none');
+      copyAddressGroup(formId, fromGroup, toGroup);
+      toFields.forEach(f => form[f].setAttribute('readonly', 'readonly'));
+      [`${toGroup}_Province`, `${toGroup}_District`, `${toGroup}_Subdistrict`].forEach(f => form[f].style.pointerEvents = 'none');
     } else {
-      fields.forEach(f => form[f].removeAttribute('readonly'));
-      ['Current_Province', 'Current_District', 'Current_Subdistrict'].forEach(f => form[f].style.pointerEvents = '');
+      toFields.forEach(f => form[f].removeAttribute('readonly'));
+      [`${toGroup}_Province`, `${toGroup}_District`, `${toGroup}_Subdistrict`].forEach(f => form[f].style.pointerEvents = '');
     }
   });
-  // ถ้าเลือกที่อยู่ทะเบียนบ้านหลังติ๊กถูกไว้แล้ว ให้อัปเดตที่อยู่ปัจจุบันตามไปด้วย
-  ['House_Province', 'House_District', 'House_Subdistrict'].forEach(name => {
+  // ถ้าเลือกที่อยู่ต้นทางหลังติ๊กถูกไว้แล้ว ให้อัปเดตที่อยู่ปลายทางตามไปด้วย
+  [`${fromGroup}_Province`, `${fromGroup}_District`, `${fromGroup}_Subdistrict`].forEach(name => {
     document.getElementById(formId)[name].addEventListener('change', () => {
-      if (checkbox.checked) setTimeout(() => copyHouseToCurrentFor(formId), 0);
+      if (checkbox.checked) setTimeout(() => copyAddressGroup(formId, fromGroup, toGroup), 0);
     });
   });
 }
-wireSameAsHouseCheckbox('registerForm', 'sameAsHouse');
-wireSameAsHouseCheckbox('profileForm', 'profSameAsHouse');
+wireCopyAddressCheckbox('registerForm', 'sameAsHouse', 'House', 'Current');
+wireCopyAddressCheckbox('registerForm', 'sameAsCurrentWork', 'Current', 'Work');
+wireCopyAddressCheckbox('profileForm', 'profSameAsHouse', 'House', 'Current');
+wireCopyAddressCheckbox('profileForm', 'profSameAsCurrentWork', 'Current', 'Work');
 
 // ---------------- ประวัติการทำงาน (หลายช่วงเวลา) ----------------
 let workHistoryRowCount = 0;
@@ -422,7 +422,7 @@ async function pullFromCouncil(section) {
   const p = data.person, f = form();
 
   if (section === 'address') {
-    ['House_No', 'House_Village', 'House_Building', 'House_Soi', 'House_Road', 'Current_No', 'Current_Village', 'Current_Building', 'Current_Soi', 'Current_Road', 'WorkAddress'].forEach(k => { if (f[k]) f[k].value = p[k] || ''; });
+    ['House_No', 'House_Village', 'House_Building', 'House_Soi', 'House_Road', 'Current_No', 'Current_Village', 'Current_Building', 'Current_Soi', 'Current_Road'].forEach(k => { if (f[k]) f[k].value = p[k] || ''; });
     fillAddressGroupFromData('House', p);
     fillAddressGroupFromData('Current', p);
   } else if (section === 'education') {
@@ -435,6 +435,8 @@ async function pullFromCouncil(section) {
     setSelectWithOther(document.getElementById('positionTypeSelect'), document.getElementById('positionTypeOther'), p.PositionType || '');
     if (f.PositionLevel) f.PositionLevel.value = p.PositionLevel || '';
     fillAgencyGroup(f, p);
+    ['Work_No', 'Work_Village', 'Work_Building', 'Work_Soi', 'Work_Road'].forEach(k => { if (f[k]) f[k].value = p[k] || ''; });
+    fillAddressGroupFromData('Work', p);
     clearWorkHistoryRows('workHistoryRows');
     (data.workHistory || []).forEach(w => addWorkHistoryRow('workHistoryRows', w));
   } else if (section === 'membership') {
@@ -554,15 +556,15 @@ function fillProfile(person, workHistory, educationHistory) {
   document.getElementById('profLicenseExp').textContent = person.LicenseExpireDate ? fmtDate(person.LicenseExpireDate) : '-';
 
   const form = document.getElementById('profileForm');
-  ['Phone', 'Email', 'WorkAddress', 'Specializations'].forEach(f => { if (form[f]) form[f].value = person[f] || ''; });
+  ['Phone', 'Email', 'Specializations'].forEach(f => { if (form[f]) form[f].value = person[f] || ''; });
 
   setSelectWithOther(document.getElementById('profPracticeStatusSelect'), document.getElementById('profPracticeStatusOther'), person.PracticeStatus || '');
   setSelectWithOther(document.getElementById('profPositionTypeSelect'), document.getElementById('profPositionTypeOther'), person.PositionType || '');
   if (form.PositionLevel) form.PositionLevel.value = person.PositionLevel || '';
   if (form.AgencyType) form.AgencyType.value = person.AgencyType || 'ภาครัฐ';
 
-  // ที่อยู่ (ทะเบียนบ้าน + ปัจจุบัน) — ไล่เติมจังหวัด→อำเภอ→ตำบล ตามลำดับให้ dropdown ลูกถูกเติมตาม
-  ['House', 'Current'].forEach(group => {
+  // ที่อยู่ (ทะเบียนบ้าน + ปัจจุบัน + ที่ทำงาน) — ไล่เติมจังหวัด→อำเภอ→ตำบล ตามลำดับให้ dropdown ลูกถูกเติมตาม
+  ['House', 'Current', 'Work'].forEach(group => {
     const provSel = form[`${group}_Province`], distSel = form[`${group}_District`], subSel = form[`${group}_Subdistrict`], zipInput = form[`${group}_Zipcode`];
     ['No', 'Village', 'Building', 'Soi', 'Road'].forEach(f => { if (form[`${group}_${f}`]) form[`${group}_${f}`].value = person[`${group}_${f}`] || ''; });
     provSel.value = person[`${group}_Province`] || '';
