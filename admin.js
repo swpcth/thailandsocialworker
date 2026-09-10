@@ -877,7 +877,7 @@ document.getElementById('personForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const data = Object.fromEntries(new FormData(e.target).entries());
   applyAdminOtherOverrides(data);
-  data.Province = data.Current_Province || data.House_Province || data.Province || '';
+  data.Province = data.Work_Province || data.Current_Province || data.House_Province || data.Province || '';
   if (!data.PersonID) delete data.PersonID;
 
   let workHistoryEntry = null;
@@ -949,10 +949,10 @@ async function loadAgencies() {
     const { items } = await Api.adminAgencies();
     agenciesCache = items;
     document.getElementById('agenciesTableBody').innerHTML = items.length ? items.map(a => `
-      <tr><td>${escapeHtml(a.Sangkad || '-')}</td><td>${escapeHtml(a.Department || '-')}</td><td>${escapeHtml(a.AgencyName || '-')}</td><td>${escapeHtml(a.AgencyType || '-')}</td><td>${escapeHtml(a.Province || '-')}</td></tr>
-    `).join('') : '<tr><td colspan="5" class="text-soft">ไม่มีข้อมูล</td></tr>';
+      <tr><td>${escapeHtml(a.Sangkad || '-')}</td><td>${escapeHtml(a.Department || '-')}</td><td>${escapeHtml(a.AgencyName || '-')}</td><td>${escapeHtml(a.AgencyType || '-')}</td></tr>
+    `).join('') : '<tr><td colspan="4" class="text-soft">ไม่มีข้อมูล</td></tr>';
   } catch (e) {
-    document.getElementById('agenciesTableBody').innerHTML = `<tr><td colspan="5" class="text-soft">โหลดไม่สำเร็จ: ${escapeHtml(e.message)}</td></tr>`;
+    document.getElementById('agenciesTableBody').innerHTML = `<tr><td colspan="4" class="text-soft">โหลดไม่สำเร็จ: ${escapeHtml(e.message)}</td></tr>`;
   }
 }
 

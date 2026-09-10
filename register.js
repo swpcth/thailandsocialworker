@@ -473,7 +473,7 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
 
   const data = Object.fromEntries(new FormData(form).entries());
   applyOtherOverrides(data);
-  data.Province = data.Current_Province || data.House_Province || ''; // ใช้เป็นค่ากลางสำหรับค้นหา/แดชบอร์ดรายจังหวัด
+  data.Province = data.Work_Province || data.Current_Province || data.House_Province || ''; // ใช้ที่อยู่ที่ทำงานเป็นหลักสำหรับค้นหา/แดชบอร์ดรายจังหวัด (สะท้อนว่าปฏิบัติงานอยู่จังหวัดไหนจริง)
   if (!/^\d{13}$/.test(data.NationalID)) {
     alertBox('registerAlert', 'เลขบัตรประชาชนต้องเป็นตัวเลข 13 หลัก', 'error'); return;
   }
@@ -618,7 +618,7 @@ document.getElementById('profileForm').addEventListener('submit', async (e) => {
   }
   const data = Object.fromEntries(new FormData(e.target).entries());
   applyProfileOtherOverrides(data);
-  data.Province = data.Current_Province || data.House_Province || '';
+  data.Province = data.Work_Province || data.Current_Province || data.House_Province || '';
   const educationEntries = collectEducationEntries('profEducationRows');
   const workHistoryEntries = collectWorkHistoryEntries('profWorkHistoryRows');
   try {
