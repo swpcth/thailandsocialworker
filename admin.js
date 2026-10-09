@@ -2,19 +2,92 @@ let adminToken = null; // mirrored into sessionStorage so it survives the ThaiD 
 let adminDisplayName = '', adminRole = '';
 let peopleCache = [];
 
-function enterAdminApp(displayName, role) {
-  adminDisplayName = displayName; adminRole = role;
-  document.getElementById('adminWelcome').textContent = `เข้าสู่ระบบในนาม ${displayName || 'เจ้าหน้าที่'} (${role || ''})`;
+let adminUsername = '', adminPerms = [], adminInfo = null;
+
+function can(key) { return adminRole === 'superadmin' || adminPerms.indexOf(key) !== -1; }
+
+// รหัสข้อผิดพลาดจาก server -> ข้อความภาษาไทย
+function adminErrText(code) {
+  const map = {
+    unauthorized: 'เซสชันไม่ถูกต้อง กรุณาเข้าสู่ระบบใหม่',
+    session_expired: 'เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่',
+    account_disabled: 'บัญชีนี้ถูกระงับการใช้งาน กรุณาติดต่อผู้ดูแลระบบระดับสูงสุด (superadmin)',
+    password_change_required: 'ต้องตั้งรหัสผ่านใหม่ก่อนใช้งานต่อ',
+    forbidden_insufficient_role: 'บัญชีของคุณไม่มีสิทธิ์ทำรายการนี้',
+    invalid_username: 'ชื่อผู้ใช้ต้องเป็นตัวอักษรอังกฤษ ตัวเลข . _ - ความยาว 3-30 ตัว',
+    username_taken: 'ชื่อผู้ใช้นี้ถูกใช้แล้ว',
+    display_name_required: 'กรุณากรอกชื่อที่แสดง',
+    invalid_role: 'บทบาทไม่ถูกต้อง',
+    invalid_status: 'สถานะไม่ถูกต้อง',
+    invalid_email: 'รูปแบบอีเมลไม่ถูกต้อง',
+    invalid_national_id: 'เลขบัตรประชาชนต้องเป็นตัวเลข 13 หลัก',
+    national_id_taken: 'เลขบัตรประชาชนนี้ผูกกับผู้ดูแลระบบคนอื่นแล้ว',
+    password_too_short: 'รหัสผ่านต้องยาวอย่างน้อย 10 ตัวอักษร',
+    password_too_weak: 'รหัสผ่านต้องมีทั้งตัวอักษรและตัวเลข',
+    password_same_as_old: 'รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสผ่านเดิม',
+    invalid_credentials: 'รหัสผ่านปัจจุบันไม่ถูกต้อง',
+    cannot_modify_self: 'ไม่สามารถเปลี่ยนบทบาท/สถานะ/สิทธิ์ของบัญชีตนเองได้',
+    last_superadmin: 'ต้องมี superadmin ที่ใช้งานได้อย่างน้อย 1 คนเสมอ',
+    not_found: 'ไม่พบบัญชีนี้'
+  };
+  return map[code] || code;
+}
+
+// ถ้า server ตอบว่า session ใช้ไม่ได้แล้ว (หมดอายุ/ถูกระงับ) ให้กลับไปหน้าเข้าสู่ระบบพร้อมข้อความ
+function handleAuthFailure(err) {
+  const code = err && err.message;
+  if (['unauthorized', 'session_expired', 'account_disabled'].indexOf(code) !== -1) {
+    adminLogout();
+    document.getElementById('adminLoginAlert').innerHTML = `<div class="alert alert-error">${escapeHtml(adminErrText(code))}</div>`;
+    return true;
+  }
+  if (code === 'password_change_required') { showForcePasswordModal(); return true; }
+  return false;
+}
+
+function enterAdminApp(displayName, role, info) {
+  info = info || {};
+  adminDisplayName = displayName; adminRole = role || 'admin';
+  adminPerms = Array.isArray(info.permissions) ? info.permissions : [];
+  adminUsername = info.username || adminUsername || '';
+  adminInfo = info;
   document.getElementById('adminLoginView').style.display = 'none';
   document.getElementById('adminAppView').style.display = '';
-  // รายงาน/แท็บวินัย-จริยธรรม มีข้อมูลอ่อนไหว จำกัดสิทธิ์การเข้าถึงเฉพาะผู้มีอำนาจ (superadmin) ตาม TOR 5.2.4.2 ข้อ 9
-  const disciplineBtn = document.getElementById('tabBtnDiscipline');
-  const disciplineAllowed = role === 'superadmin';
-  disciplineBtn.style.display = disciplineAllowed ? '' : 'none';
-  const disciplineOption = document.querySelector('#reportSelect option[value="discipline"]');
-  if (disciplineOption) disciplineOption.style.display = disciplineAllowed ? '' : 'none';
+  document.getElementById('adminWelcome').textContent = `เข้าสู่ระบบในนาม ${displayName || 'เจ้าหน้าที่'} (${adminRole})`;
+
+  if (info.mustChangePassword) { showForcePasswordModal(); return; } // ยังไม่โหลดข้อมูลจนกว่าจะตั้งรหัสผ่านใหม่
+  finishEnterAdminApp();
+}
+
+function finishEnterAdminApp() {
+  applyPermissionsToUi();
   loadAllAdminData();
   loadMfaStatus();
+  renderAccountInfo();
+}
+
+// ซ่อนเมนู/ปุ่มที่ไม่มีสิทธิ์ (เป็นแค่ความสะดวกของผู้ใช้ — การบังคับสิทธิ์จริงอยู่ที่ server ทุก endpoint)
+function applyPermissionsToUi() {
+  let firstVisible = null;
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    const perm = btn.dataset.perm;
+    const allowed = !perm || (perm === '@superadmin' ? adminRole === 'superadmin' : can(perm));
+    btn.style.display = allowed ? '' : 'none';
+    if (allowed && !firstVisible) firstVisible = btn;
+  });
+  const setShow = (id, on) => { const el = document.getElementById(id); if (el) el.style.display = on ? '' : 'none'; };
+  setShow('addPersonBtn', can('people_edit'));
+  setShow('importPeopleBtn', can('people_import'));
+  setShow('addDisciplineBtn', can('discipline_edit'));
+  const disciplineOption = document.querySelector('#reportSelect option[value="discipline"]');
+  if (disciplineOption) { disciplineOption.style.display = can('discipline_view') ? '' : 'none'; disciplineOption.disabled = !can('discipline_view'); }
+  // เปิดแท็บแรกที่มีสิทธิ์
+  const activeBtn = document.querySelector('.tab-btn.active');
+  if (!activeBtn || activeBtn.style.display === 'none') {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    if (firstVisible) { firstVisible.classList.add('active'); document.getElementById(firstVisible.dataset.tab).classList.add('active'); }
+  }
 }
 
 // ---------------- Login ขั้นที่ 1: ชื่อผู้ใช้ + รหัสผ่าน ----------------
@@ -38,10 +111,11 @@ document.getElementById('adminLoginBtn').addEventListener('click', async () => {
     } else {
       adminToken = res.token;
       sessionStorage.setItem('swdb_admin_token', adminToken);
-      enterAdminApp(res.displayName || username, res.role);
+      adminUsername = username; enterAdminApp(res.displayName || username, res.role, res);
     }
   } catch (err) {
     const msg = err.message === 'mfa_no_email' ? 'บัญชีนี้เปิดใช้งาน MFA แต่ยังไม่มีอีเมลผูกไว้ กรุณาติดต่อผู้ดูแลระบบ'
+      : err.message === 'account_disabled' ? adminErrText('account_disabled')
       : 'เข้าสู่ระบบไม่สำเร็จ: ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง';
     document.getElementById('adminLoginAlert').innerHTML = `<div class="alert alert-error">${escapeHtml(msg)}</div>`;
   } finally {
@@ -58,7 +132,7 @@ document.getElementById('adminVerifyOtpBtn').addEventListener('click', async () 
     const res = await Api.adminVerifyLoginOtp(pendingMfaUsername, otp);
     adminToken = res.token;
     sessionStorage.setItem('swdb_admin_token', adminToken);
-    enterAdminApp(res.displayName || pendingMfaUsername, res.role);
+    enterAdminApp(res.displayName || pendingMfaUsername, res.role, res);
   } catch (err) {
     const msg = err.message === 'otp_expired' ? 'รหัส OTP หมดอายุแล้ว กรุณากลับไปเข้าสู่ระบบใหม่เพื่อขอรหัสอีกครั้ง'
       : 'รหัส OTP ไม่ถูกต้อง';
@@ -96,7 +170,9 @@ document.getElementById('thaidStaffLoginBtn').addEventListener('click', async ()
 function adminLogout() {
   adminToken = null;
   pendingMfaUsername = null;
+  adminUsername = ''; adminPerms = []; adminRole = ''; adminInfo = null;
   sessionStorage.removeItem('swdb_admin_token');
+  document.getElementById('forcePwModal').hidden = true;
   document.getElementById('adminAppView').style.display = 'none';
   document.getElementById('adminLoginView').style.display = '';
   document.getElementById('adminOtpStep').style.display = 'none';
@@ -111,10 +187,13 @@ function adminLogout() {
   if (!token) return;
   adminToken = token;
   Api.adminWhoami(adminToken).then(res => {
-    enterAdminApp(res.displayName || res.username, res.role);
-  }).catch(() => {
+    enterAdminApp(res.displayName || res.username, res.role, res);
+  }).catch((err) => {
     adminToken = null;
     sessionStorage.removeItem('swdb_admin_token');
+    if (err && err.message === 'account_disabled') {
+      document.getElementById('adminLoginAlert').innerHTML = `<div class="alert alert-error">${escapeHtml(adminErrText('account_disabled'))}</div>`;
+    }
   });
 })();
 
@@ -167,11 +246,13 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 });
 
 function loadAllAdminData() {
-  loadAdminDashboard();
-  loadPeople();
-  if (adminRole === 'superadmin') loadDiscipline();
-  loadAgencies();
-  loadAudit();
+  // รายงานใช้ข้อมูลสถิติ/จังหวัดที่โหลดมาพร้อมแดชบอร์ด จึงโหลดเมื่อมีสิทธิ์อย่างใดอย่างหนึ่ง
+  if (can('dashboard') || can('reports')) loadAdminDashboard();
+  if (can('people_view') || can('reports')) loadPeople();
+  if (can('discipline_view')) loadDiscipline();
+  if (can('agencies')) loadAgencies();
+  if (can('audit')) loadAudit();
+  if (adminRole === 'superadmin') loadAdmins();
 }
 
 // ---------------- Dashboard (ฉบับเต็มสำหรับเจ้าหน้าที่) ----------------
@@ -203,6 +284,7 @@ async function loadAdminDashboard() {
     renderProvinceRanking(byProvince, 'top');
     renderAgencyRanking(stats.byAgencyName || {});
     renderThailandMap('adminMap', byProvince, { height: 480, onProvinceClick: (name) => {
+      if (!can('people_view')) return;
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
       document.querySelector('.tab-btn[data-tab="tabPeople"]').classList.add('active');
@@ -381,7 +463,7 @@ async function renderReport(type) {
       el.innerHTML = `<div class="alert alert-error">โหลดข้อมูลวุฒิการศึกษาไม่สำเร็จ: ${escapeHtml(e.message)}</div>`;
     }
   } else if (type === 'discipline') {
-    if (adminRole !== 'superadmin') { el.innerHTML = '<div class="alert alert-error">รายงานนี้จำกัดสิทธิ์เฉพาะผู้ดูแลระบบระดับสูง (superadmin)</div>'; return; }
+    if (!can('discipline_view')) { el.innerHTML = '<div class="alert alert-error">รายงานนี้จำกัดสิทธิ์เฉพาะผู้ที่ได้รับสิทธิ์ดูข้อมูลวินัย/จริยธรรม</div>'; return; }
     try {
       const { items } = await Api.adminListDiscipline(adminToken);
       el.innerHTML = `<div class="card"><h3 style="margin-top:0;">แยกตามประเภทกรณี</h3>${renderCountTable(groupBy(items, d => d.CaseType), ['ประเภทกรณี', 'จำนวน'])}</div>
@@ -455,8 +537,8 @@ function renderPeopleTable(items) {
       <td>${p.MembershipStatus === 'active' ? '<span class="badge badge-green">ปกติ</span>' : '<span class="badge badge-gray">-</span>'}</td>
       <td>${p.LicenseStatus === 'active' ? '<span class="badge badge-green">ปกติ</span>' : '<span class="badge badge-gray">-</span>'}</td>
       <td class="flex gap-8">
-        <button class="btn btn-ghost btn-sm" onclick="openPersonForm('${p.PersonID}')">แก้ไข</button>
-        <button class="btn btn-danger btn-sm" onclick="deletePerson('${p.PersonID}')">ลบ</button>
+        <button class="btn btn-ghost btn-sm" onclick="openPersonForm('${p.PersonID}')">${can('people_edit') ? 'แก้ไข' : 'ดู'}</button>
+        ${can('people_edit') ? `<button class="btn btn-danger btn-sm" onclick="deletePerson('${p.PersonID}')">ลบ</button>` : ''}
       </td>
     </tr>
   `).join('') : '<tr><td colspan="8" class="text-soft">ไม่มีข้อมูล</td></tr>';
@@ -844,7 +926,8 @@ function openPersonForm(personId) {
   document.getElementById('adm_sameAsCurrentWork').checked = false;
   document.getElementById('personFormAlert').innerHTML = '';
   wrap.style.display = '';
-  document.getElementById('personFormTitle').textContent = personId ? 'แก้ไขข้อมูลผู้ปฏิบัติงาน' : 'เพิ่มผู้ปฏิบัติงาน';
+  document.getElementById('personFormTitle').textContent = personId ? (can('people_edit') ? 'แก้ไขข้อมูลผู้ปฏิบัติงาน' : 'ข้อมูลผู้ปฏิบัติงาน (ดูอย่างเดียว)') : 'เพิ่มผู้ปฏิบัติงาน';
+  form.querySelectorAll('button[type="submit"]').forEach(b => { b.style.display = can('people_edit') ? '' : 'none'; });
 
   if (personId) {
     const p = peopleCache.find(x => x.PersonID === personId);
@@ -990,3 +1073,285 @@ async function loadAudit() {
     document.getElementById('auditTableBody').innerHTML = `<tr><td colspan="5" class="text-soft">โหลดไม่สำเร็จ: ${escapeHtml(e.message)}</td></tr>`;
   }
 }
+
+// ================= บัญชีของฉัน: ข้อมูลสิทธิ์ + เปลี่ยนรหัสผ่าน =================
+const PERM_LABELS = {
+  dashboard: 'ดูภาพรวม (แดชบอร์ด)',
+  reports: 'ดูรายงานและส่งออก Excel (ข้อมูลระดับสรุป)',
+  people_view: 'ดูข้อมูลผู้ปฏิบัติงานรายบุคคล',
+  people_edit: 'เพิ่ม/แก้ไข/ปิดใช้งานข้อมูลผู้ปฏิบัติงาน',
+  people_import: 'นำเข้าข้อมูลสมาชิกจาก Excel',
+  discipline_view: 'ดูข้อมูลวินัย/จริยธรรม',
+  discipline_edit: 'เพิ่ม/แก้ไขข้อมูลวินัย/จริยธรรม',
+  agencies: 'จัดการรายชื่อหน่วยงาน/สังกัด/กรม',
+  audit: 'ดูบันทึกการใช้งาน (Audit Log)'
+};
+const PERM_ORDER = Object.keys(PERM_LABELS);
+const PRESET_STAFF = ['dashboard', 'reports', 'people_view', 'people_edit', 'people_import', 'agencies', 'audit'];
+const PRESET_VIEWER = ['dashboard', 'reports'];
+
+function renderAccountInfo() {
+  document.getElementById('accountInfoText').textContent =
+    `ชื่อผู้ใช้: ${adminUsername || '-'} · ชื่อที่แสดง: ${adminDisplayName || '-'} · บทบาท: ${adminRole}`;
+  const list = adminRole === 'superadmin'
+    ? '<p class="mb-0">superadmin — ได้รับทุกสิทธิ์ และจัดการบัญชีผู้ดูแลระบบอื่นได้</p>'
+    : (adminPerms.length
+      ? '<ul style="margin:0; padding-left:20px;">' + PERM_ORDER.filter(k => adminPerms.indexOf(k) !== -1).map(k => `<li>${escapeHtml(PERM_LABELS[k])}</li>`).join('') + '</ul>'
+      : '<p class="mb-0 text-soft">ยังไม่ได้รับสิทธิ์ใด ๆ — กรุณาติดต่อ superadmin</p>');
+  document.getElementById('accountPermList').innerHTML = '<strong>สิทธิ์ที่ได้รับ:</strong>' + list;
+}
+
+function validateNewPasswordClient(pw, confirm) {
+  if (pw.length < 10) return 'รหัสผ่านใหม่ต้องยาวอย่างน้อย 10 ตัวอักษร';
+  if (!(/[A-Za-z]/.test(pw) && /\d/.test(pw))) return 'รหัสผ่านใหม่ต้องมีทั้งตัวอักษรและตัวเลข';
+  if (pw !== confirm) return 'ยืนยันรหัสผ่านใหม่ไม่ตรงกัน';
+  return '';
+}
+
+document.getElementById('cpSubmitBtn').addEventListener('click', async () => {
+  const cur = document.getElementById('cpCurrent').value;
+  const nw = document.getElementById('cpNew').value;
+  const cf = document.getElementById('cpConfirm').value;
+  const alertEl = document.getElementById('changePwAlert');
+  const bad = validateNewPasswordClient(nw, cf);
+  if (bad) { alertEl.innerHTML = `<div class="alert alert-error">${escapeHtml(bad)}</div>`; return; }
+  const btn = document.getElementById('cpSubmitBtn');
+  btn.disabled = true;
+  try {
+    await Api.adminChangePassword(adminToken, cur, nw);
+    alertEl.innerHTML = '<div class="alert alert-info">เปลี่ยนรหัสผ่านสำเร็จ (เซสชันอื่นของบัญชีนี้ถูกออกจากระบบแล้ว)</div>';
+    ['cpCurrent', 'cpNew', 'cpConfirm'].forEach(id => { document.getElementById(id).value = ''; });
+  } catch (err) {
+    if (handleAuthFailure(err)) return;
+    alertEl.innerHTML = `<div class="alert alert-error">${escapeHtml(adminErrText(err.message))}</div>`;
+  } finally { btn.disabled = false; }
+});
+
+// ---- บังคับเปลี่ยนรหัสผ่านชั่วคราว ----
+function showForcePasswordModal() {
+  ['fpCurrent', 'fpNew', 'fpConfirm'].forEach(id => { document.getElementById(id).value = ''; });
+  document.getElementById('forcePwAlert').innerHTML = '';
+  document.getElementById('forcePwModal').hidden = false;
+}
+
+document.getElementById('fpLogoutBtn').addEventListener('click', () => adminLogout());
+document.getElementById('fpSubmitBtn').addEventListener('click', async () => {
+  const cur = document.getElementById('fpCurrent').value;
+  const nw = document.getElementById('fpNew').value;
+  const cf = document.getElementById('fpConfirm').value;
+  const alertEl = document.getElementById('forcePwAlert');
+  const bad = validateNewPasswordClient(nw, cf);
+  if (bad) { alertEl.innerHTML = `<div class="alert alert-error">${escapeHtml(bad)}</div>`; return; }
+  const btn = document.getElementById('fpSubmitBtn');
+  btn.disabled = true;
+  try {
+    await Api.adminChangePassword(adminToken, cur, nw);
+    document.getElementById('forcePwModal').hidden = true;
+    if (adminInfo) adminInfo.mustChangePassword = false;
+    toast('ตั้งรหัสผ่านใหม่สำเร็จ');
+    finishEnterAdminApp();
+  } catch (err) {
+    if (['unauthorized', 'session_expired', 'account_disabled'].indexOf(err.message) !== -1) { handleAuthFailure(err); return; }
+    alertEl.innerHTML = `<div class="alert alert-error">${escapeHtml(adminErrText(err.message))}</div>`;
+  } finally { btn.disabled = false; }
+});
+
+// ================= จัดการผู้ดูแลระบบ (superadmin) =================
+let adminsCache = [];
+let adminCatalog = PERM_LABELS;
+let editingAdminUsername = null; // null = กำลังเพิ่มใหม่
+
+async function loadAdmins() {
+  try {
+    const res = await Api.adminListAdmins(adminToken);
+    adminsCache = res.items || [];
+    if (res.catalog) adminCatalog = res.catalog;
+    renderAdminsTable();
+  } catch (e) {
+    if (handleAuthFailure(e)) return;
+    document.getElementById('adminsTableBody').innerHTML = `<tr><td colspan="8" class="text-soft">โหลดไม่สำเร็จ: ${escapeHtml(adminErrText(e.message))}</td></tr>`;
+  }
+}
+
+function permSummary(a) {
+  if (a.role === 'superadmin') return 'ทุกสิทธิ์';
+  if (!a.permissions.length) return '<span class="text-soft">ไม่มีสิทธิ์ใด ๆ</span>';
+  const legacy = !a.permissionsCustomized ? ' <span class="badge badge-gray">ค่าเริ่มต้นเดิม</span>' : '';
+  return `${a.permissions.length}/${PERM_ORDER.length} รายการ${legacy}`;
+}
+
+function renderAdminsTable() {
+  const body = document.getElementById('adminsTableBody');
+  body.innerHTML = adminsCache.length ? adminsCache.map(a => {
+    const self = a.username === adminUsername;
+    const u = escapeHtml(a.username);
+    return `<tr>
+      <td>${u}${self ? ' <span class="badge badge-gray">คุณ</span>' : ''}</td>
+      <td>${escapeHtml(a.displayName || '-')}</td>
+      <td>${a.role === 'superadmin' ? '<span class="badge badge-green">superadmin</span>' : '<span class="badge badge-gray">admin</span>'}</td>
+      <td>${a.status === 'active' ? '<span class="badge badge-green">ใช้งาน</span>' : '<span class="badge badge-red">ระงับ</span>'}${a.mustChangePassword ? ' <span class="badge badge-gray">รอตั้งรหัสผ่านใหม่</span>' : ''}</td>
+      <td>${permSummary(a)}</td>
+      <td>${a.mfaEnabled ? 'เปิด' : '-'}</td>
+      <td>${a.lastLoginAt ? fmtDate(a.lastLoginAt) : '-'}</td>
+      <td class="flex gap-8">
+        <button class="btn btn-ghost btn-sm" data-act="edit" data-user="${u}">แก้ไข</button>
+        ${self ? '' : `<button class="btn btn-outline btn-sm" data-act="reset" data-user="${u}">รีเซ็ตรหัสผ่าน</button>`}
+      </td></tr>`;
+  }).join('') : '<tr><td colspan="8" class="text-soft">ไม่มีข้อมูล</td></tr>';
+}
+
+document.getElementById('adminsTableBody').addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-act]');
+  if (!btn) return;
+  if (btn.dataset.act === 'edit') openAdminForm(btn.dataset.user);
+  else if (btn.dataset.act === 'reset') resetAdminPasswordFlow(btn.dataset.user);
+});
+
+function renderPermCheckboxes(selected) {
+  document.getElementById('adm_permList').innerHTML = PERM_ORDER.map(k => `
+    <label style="display:flex; gap:8px; align-items:flex-start; margin:4px 0; cursor:pointer;">
+      <input type="checkbox" data-perm="${k}" ${selected.indexOf(k) !== -1 ? 'checked' : ''} style="width:auto; margin-top:4px;">
+      <span><strong>${escapeHtml(k)}</strong> — ${escapeHtml((adminCatalog && adminCatalog[k]) || PERM_LABELS[k])}</span>
+    </label>`).join('');
+}
+
+function setPermChecks(list) {
+  document.querySelectorAll('#adm_permList input[data-perm]').forEach(cb => { cb.checked = list.indexOf(cb.dataset.perm) !== -1; });
+}
+
+function getPermChecks() {
+  return Array.from(document.querySelectorAll('#adm_permList input[data-perm]:checked')).map(cb => cb.dataset.perm);
+}
+
+// สิทธิ์ที่ต้องพึ่งกัน: แก้ไข/นำเข้า -> ต้องดูได้ · วินัย: แก้ไข -> ต้องดูได้
+document.getElementById('adm_permList').addEventListener('change', (e) => {
+  const cb = e.target;
+  if (!cb.dataset || !cb.dataset.perm) return;
+  const set = (k, v) => { const el = document.querySelector(`#adm_permList input[data-perm="${k}"]`); if (el) el.checked = v; };
+  if (cb.checked) {
+    if (cb.dataset.perm === 'people_edit' || cb.dataset.perm === 'people_import') set('people_view', true);
+    if (cb.dataset.perm === 'discipline_edit') set('discipline_view', true);
+  } else {
+    if (cb.dataset.perm === 'people_view') { set('people_edit', false); set('people_import', false); }
+    if (cb.dataset.perm === 'discipline_view') set('discipline_edit', false);
+  }
+});
+
+document.querySelectorAll('#adminFormWrap [data-preset]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const p = btn.dataset.preset;
+    setPermChecks(p === 'staff' ? PRESET_STAFF : p === 'viewer' ? PRESET_VIEWER : p === 'all' ? PERM_ORDER : []);
+  });
+});
+
+function syncAdminFormRole() {
+  const isSuper = document.getElementById('adm_roleSelect').value === 'superadmin';
+  document.getElementById('adm_permBox').style.display = isSuper ? 'none' : '';
+  document.getElementById('adm_superNote').style.display = isSuper ? '' : 'none';
+}
+document.getElementById('adm_roleSelect').addEventListener('change', syncAdminFormRole);
+
+function openAdminForm(username) {
+  const form = document.getElementById('adminForm');
+  form.reset();
+  document.getElementById('adminFormAlert').innerHTML = '';
+  editingAdminUsername = username || null;
+  const a = username ? adminsCache.find(x => x.username === username) : null;
+  const self = !!a && a.username === adminUsername;
+  document.getElementById('adminFormTitle').textContent = a ? `แก้ไขผู้ดูแลระบบ: ${a.username}` : 'เพิ่มผู้ดูแลระบบ';
+  form.elements.username.value = a ? a.username : '';
+  form.elements.username.disabled = !!a;
+  form.elements.displayName.value = a ? a.displayName : '';
+  form.elements.role.value = a ? a.role : 'admin';
+  form.elements.status.value = a ? a.status : 'active';
+  form.elements.email.value = a ? a.email : '';
+  form.elements.nationalId.value = '';
+  form.elements.nationalId.placeholder = a && a.nationalIdMasked ? `ผูกไว้แล้ว (${a.nationalIdMasked}) — กรอกใหม่เพื่อเปลี่ยน` : '';
+  form.elements.email.disabled = self;
+  document.getElementById('adm_statusField').style.display = a ? '' : 'none';
+  document.getElementById('adm_tempPwField').style.display = a ? 'none' : '';
+  renderPermCheckboxes(a ? a.permissions : PRESET_VIEWER);
+  // แก้ไขบัญชีตัวเอง: ล็อกบทบาท/สถานะ/สิทธิ์
+  form.elements.role.disabled = self; form.elements.status.disabled = self;
+  document.querySelectorAll('#adm_permList input, #adminFormWrap [data-preset]').forEach(el => { el.disabled = self; });
+  document.getElementById('adm_selfNote').style.display = self ? '' : 'none';
+  syncAdminFormRole();
+  const wrap = document.getElementById('adminFormWrap');
+  wrap.style.display = '';
+  wrap.scrollIntoView({ behavior: 'smooth' });
+}
+
+document.getElementById('addAdminBtn').addEventListener('click', () => openAdminForm(null));
+document.getElementById('adminFormCancel').addEventListener('click', () => { document.getElementById('adminFormWrap').style.display = 'none'; });
+
+document.getElementById('adminForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const form = e.target;
+  const alertEl = document.getElementById('adminFormAlert');
+  const btn = document.getElementById('adminFormSubmit');
+  btn.disabled = true;
+  try {
+    if (!editingAdminUsername) {
+      const data = {
+        username: form.elements.username.value.trim(),
+        displayName: form.elements.displayName.value.trim(),
+        role: form.elements.role.value,
+        email: form.elements.email.value.trim(),
+        nationalId: form.elements.nationalId.value.trim(),
+        tempPassword: form.elements.tempPassword.value,
+        permissions: getPermChecks()
+      };
+      const res = await Api.adminCreateAdmin(adminToken, data);
+      toast('สร้างบัญชีผู้ดูแลระบบสำเร็จ');
+      document.getElementById('adminFormWrap').style.display = 'none';
+      showTempPassword(res.username, res.tempPassword);
+    } else {
+      const self = editingAdminUsername === adminUsername;
+      const data = { displayName: form.elements.displayName.value.trim() };
+      if (!self) {
+        data.role = form.elements.role.value;
+        data.status = form.elements.status.value;
+        data.email = form.elements.email.value.trim();
+        data.permissions = getPermChecks();
+      }
+      const nid = form.elements.nationalId.value.trim();
+      if (nid) data.nationalId = nid;
+      const res = await Api.adminUpdateAdmin(adminToken, editingAdminUsername, data);
+      toast(res.unchanged ? 'ไม่มีการเปลี่ยนแปลง' : 'บันทึกการเปลี่ยนแปลงแล้ว (มีผลทันที)');
+      document.getElementById('adminFormWrap').style.display = 'none';
+    }
+    loadAdmins();
+    if (can('audit')) loadAudit();
+  } catch (err) {
+    if (handleAuthFailure(err)) return;
+    alertEl.innerHTML = `<div class="alert alert-error">${escapeHtml(adminErrText(err.message))}</div>`;
+  } finally { btn.disabled = false; }
+});
+
+async function resetAdminPasswordFlow(username) {
+  if (!confirm(`รีเซ็ตรหัสผ่านของ "${username}" หรือไม่?\n\nระบบจะสร้างรหัสผ่านชั่วคราวใหม่ ออกจากระบบทุกเซสชันของบัญชีนี้ และบังคับให้ตั้งรหัสผ่านใหม่เมื่อเข้าสู่ระบบ`)) return;
+  try {
+    const res = await Api.adminResetAdminPassword(adminToken, username);
+    showTempPassword(res.username, res.tempPassword);
+    loadAdmins();
+    if (can('audit')) loadAudit();
+  } catch (err) {
+    if (handleAuthFailure(err)) return;
+    toast('รีเซ็ตไม่สำเร็จ: ' + adminErrText(err.message), 'error');
+  }
+}
+
+function showTempPassword(username, pw) {
+  document.getElementById('tempPwUser').textContent = username;
+  document.getElementById('tempPwValue').textContent = pw;
+  document.getElementById('tempPwModal').hidden = false;
+}
+document.getElementById('tempPwCopyBtn').addEventListener('click', async () => {
+  const pw = document.getElementById('tempPwValue').textContent;
+  try { await navigator.clipboard.writeText(pw); toast('คัดลอกรหัสผ่านแล้ว'); }
+  catch (e) { toast('คัดลอกอัตโนมัติไม่ได้ กรุณาเลือกข้อความแล้วคัดลอกเอง', 'error'); }
+});
+document.getElementById('tempPwCloseBtn').addEventListener('click', () => {
+  document.getElementById('tempPwModal').hidden = true;
+  document.getElementById('tempPwValue').textContent = ''; // ไม่ทิ้งรหัสไว้ใน DOM
+});

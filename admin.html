@@ -78,12 +78,14 @@
       </div>
 
       <div class="tabs">
-        <button class="tab-btn active" data-tab="tabDashboard">ภาพรวม</button>
-        <button class="tab-btn" data-tab="tabReports">รายงาน</button>
-        <button class="tab-btn" data-tab="tabPeople">ข้อมูลผู้ปฏิบัติงาน</button>
-        <button class="tab-btn" id="tabBtnDiscipline" data-tab="tabDiscipline">วินัย/จริยธรรม</button>
-        <button class="tab-btn" data-tab="tabAgencies">หน่วยงาน</button>
-        <button class="tab-btn" data-tab="tabAudit">บันทึกการใช้งาน (Audit Log)</button>
+        <button class="tab-btn active" data-tab="tabDashboard" data-perm="dashboard">ภาพรวม</button>
+        <button class="tab-btn" data-tab="tabReports" data-perm="reports">รายงาน</button>
+        <button class="tab-btn" data-tab="tabPeople" data-perm="people_view">ข้อมูลผู้ปฏิบัติงาน</button>
+        <button class="tab-btn" id="tabBtnDiscipline" data-tab="tabDiscipline" data-perm="discipline_view">วินัย/จริยธรรม</button>
+        <button class="tab-btn" data-tab="tabAgencies" data-perm="agencies">หน่วยงาน</button>
+        <button class="tab-btn" data-tab="tabAudit" data-perm="audit">บันทึกการใช้งาน (Audit Log)</button>
+        <button class="tab-btn" id="tabBtnAdmins" data-tab="tabAdmins" data-perm="@superadmin">จัดการผู้ดูแลระบบ</button>
+        <button class="tab-btn" data-tab="tabAccount">บัญชีของฉัน</button>
       </div>
 
       <!-- ---------- TAB: Dashboard (ฉบับเต็มสำหรับเจ้าหน้าที่) ---------- -->
@@ -135,28 +137,6 @@
         </div>
 
         <div class="card mt-16">
-          <div class="flex-between">
-            <h3 style="margin-top:0;">ความปลอดภัยบัญชีของฉัน — การยืนยันตัวตนหลายปัจจัย (MFA ผ่านอีเมล)</h3>
-            <button class="btn btn-outline btn-sm" id="mfaSetupBtn">ตั้งค่า MFA</button>
-          </div>
-          <p class="text-sm text-soft" id="mfaStatusText">กำลังตรวจสอบสถานะ...</p>
-          <div id="mfaSetupPanel" style="display:none;">
-            <div class="grid grid-2">
-              <div>
-                <p class="text-sm">กรอกอีเมลที่ต้องการใช้รับรหัส OTP ทุกครั้งที่เข้าสู่ระบบด้วยรหัสผ่าน:</p>
-                <div class="field"><label>อีเมล</label><input type="email" id="mfaEmailInput" placeholder="name@example.com"></div>
-                <button class="btn btn-outline btn-sm" id="mfaSendOtpBtn">ส่งรหัส OTP ไปยังอีเมลนี้</button>
-                <p class="text-sm text-soft mt-8" id="mfaSetupAlert"></p>
-              </div>
-              <div>
-                <div class="field"><label>กรอกรหัส OTP ที่ได้รับทางอีเมลเพื่อยืนยัน</label><input type="text" id="mfaConfirmOtp" maxlength="6" placeholder="รหัส 6 หลัก"></div>
-                <button class="btn btn-primary btn-sm" id="mfaConfirmBtn">ยืนยันและเปิดใช้งาน MFA</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="card mt-16">
           <h3 style="margin-top:0;">รายชื่อที่ใบอนุญาตใกล้หมดอายุภายใน 90 วัน</h3>
           <div class="table-scroll">
             <table class="data-table">
@@ -196,7 +176,7 @@
           <div class="flex gap-8">
             <button class="btn btn-outline btn-sm" id="importPeopleBtn">⬆ นำเข้าจาก Excel</button>
             <input type="file" id="importPeopleFile" accept=".xlsx,.xls" style="display:none;">
-            <button class="btn btn-primary btn-sm" onclick="openPersonForm(null)">+ เพิ่มผู้ปฏิบัติงาน</button>
+            <button class="btn btn-primary btn-sm" id="addPersonBtn" onclick="openPersonForm(null)">+ เพิ่มผู้ปฏิบัติงาน</button>
           </div>
         </div>
 
@@ -393,7 +373,7 @@
       <div id="tabDiscipline" class="tab-panel">
         <div class="flex-between mt-8">
           <p class="text-soft text-sm mb-0">บันทึกและติดตามกรณีการดำเนินการทางวินัยของผู้ประกอบวิชาชีพ (จำกัดสิทธิ์เฉพาะผู้ดูแลระบบ)</p>
-          <button class="btn btn-primary btn-sm" onclick="openDisciplineForm()">+ เพิ่มบันทึก</button>
+          <button class="btn btn-primary btn-sm" id="addDisciplineBtn" onclick="openDisciplineForm()">+ เพิ่มบันทึก</button>
         </div>
         <div class="table-scroll mt-16">
           <table class="data-table">
@@ -461,6 +441,104 @@
         </div>
       </div>
 
+      <!-- ---------- TAB: จัดการผู้ดูแลระบบ (เฉพาะ superadmin) ---------- -->
+      <div id="tabAdmins" class="tab-panel">
+        <div class="flex-between mt-8">
+          <p class="text-soft text-sm mb-0">เพิ่มผู้ดูแลระบบ กำหนดสิทธิ์การเข้าถึงรายข้อ ระงับบัญชี และรีเซ็ตรหัสผ่าน — การเปลี่ยนสิทธิ์/ระงับบัญชีมีผลทันทีในคำขอถัดไปของผู้ใช้นั้น</p>
+          <button class="btn btn-primary btn-sm" id="addAdminBtn">+ เพิ่มผู้ดูแลระบบ</button>
+        </div>
+        <div class="table-scroll mt-16">
+          <table class="data-table">
+            <thead><tr><th>ชื่อผู้ใช้</th><th>ชื่อที่แสดง</th><th>บทบาท</th><th>สถานะ</th><th>สิทธิ์</th><th>MFA</th><th>เข้าสู่ระบบล่าสุด</th><th></th></tr></thead>
+            <tbody id="adminsTableBody"><tr><td colspan="8" class="text-soft">กำลังโหลด...</td></tr></tbody>
+          </table>
+        </div>
+
+        <div id="adminFormWrap" style="display:none;" class="card mt-16">
+          <h3 id="adminFormTitle" style="margin-top:0;">เพิ่มผู้ดูแลระบบ</h3>
+          <div id="adminFormAlert"></div>
+          <form id="adminForm">
+            <div class="form-grid">
+              <div class="field"><label>ชื่อผู้ใช้ (Username) *</label><input type="text" name="username" maxlength="30" placeholder="ตัวอักษรอังกฤษ/ตัวเลข 3-30 ตัว" required></div>
+              <div class="field"><label>ชื่อที่แสดง *</label><input type="text" name="displayName" required></div>
+              <div class="field"><label>บทบาท</label>
+                <select name="role" id="adm_roleSelect">
+                  <option value="admin">admin — ใช้ได้ตามสิทธิ์ที่กำหนด</option>
+                  <option value="superadmin">superadmin — ทุกสิทธิ์ และจัดการผู้ดูแลระบบอื่นได้</option>
+                </select>
+              </div>
+              <div class="field" id="adm_statusField" style="display:none;"><label>สถานะบัญชี</label>
+                <select name="status"><option value="active">ใช้งาน</option><option value="disabled">ระงับ (เข้าสู่ระบบไม่ได้)</option></select>
+              </div>
+              <div class="field"><label>อีเมล (ถ้ามี)</label><input type="email" name="email"></div>
+              <div class="field"><label>เลขบัตรประชาชน 13 หลัก (สำหรับเข้าสู่ระบบด้วย ThaiD — เว้นว่างได้)</label><input type="text" name="nationalId" maxlength="13" inputmode="numeric"></div>
+              <div class="field" id="adm_tempPwField"><label>รหัสผ่านชั่วคราว (เว้นว่าง = ให้ระบบสุ่มให้)</label><input type="text" name="tempPassword" autocomplete="off"></div>
+            </div>
+
+            <div id="adm_permBox">
+              <h4>สิทธิ์การเข้าถึง</h4>
+              <div class="flex gap-8" style="flex-wrap:wrap; margin-bottom:8px;">
+                <button type="button" class="btn btn-ghost btn-sm" data-preset="staff">ชุดเจ้าหน้าที่ทั่วไป</button>
+                <button type="button" class="btn btn-ghost btn-sm" data-preset="viewer">ดูรายงานเท่านั้น</button>
+                <button type="button" class="btn btn-ghost btn-sm" data-preset="all">เลือกทั้งหมด</button>
+                <button type="button" class="btn btn-ghost btn-sm" data-preset="none">ล้างทั้งหมด</button>
+              </div>
+              <div id="adm_permList"></div>
+              <p class="text-sm text-soft mt-8">สิทธิ์แก้ไข/นำเข้าจะเลือก "ดูข้อมูลผู้ปฏิบัติงาน" ให้อัตโนมัติ · ข้อมูลวินัย/จริยธรรมเป็นข้อมูลอ่อนไหว ควรมอบให้เฉพาะผู้ที่จำเป็น</p>
+            </div>
+            <p class="text-sm text-soft" id="adm_superNote" style="display:none;">superadmin ได้รับทุกสิทธิ์โดยอัตโนมัติ ไม่ต้องกำหนดรายข้อ</p>
+            <p class="text-sm text-soft" id="adm_selfNote" style="display:none;">คุณกำลังแก้ไขบัญชีของตนเอง — ไม่สามารถเปลี่ยนบทบาท สถานะ หรือสิทธิ์ของตนเองได้ (ป้องกันการล็อกตัวเองออกจากระบบ)</p>
+
+            <div class="flex gap-12 mt-16">
+              <button type="submit" class="btn btn-primary" id="adminFormSubmit">บันทึก</button>
+              <button type="button" class="btn btn-ghost" id="adminFormCancel">ยกเลิก</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- ---------- TAB: บัญชีของฉัน (ทุกบทบาทเห็น) ---------- -->
+      <div id="tabAccount" class="tab-panel">
+        <div class="card mt-8">
+          <h3 style="margin-top:0;">ข้อมูลบัญชีและสิทธิ์ของฉัน</h3>
+          <p class="text-sm" id="accountInfoText"></p>
+          <div id="accountPermList" class="text-sm"></div>
+        </div>
+
+        <div class="card mt-16">
+          <h3 style="margin-top:0;">เปลี่ยนรหัสผ่านของฉัน</h3>
+          <div id="changePwAlert"></div>
+          <div class="form-grid">
+            <div class="field"><label>รหัสผ่านปัจจุบัน</label><input type="password" id="cpCurrent" autocomplete="current-password"></div>
+            <div class="field"><label>รหัสผ่านใหม่ (อย่างน้อย 10 ตัวอักษร มีทั้งตัวอักษรและตัวเลข)</label><input type="password" id="cpNew" autocomplete="new-password"></div>
+            <div class="field"><label>ยืนยันรหัสผ่านใหม่</label><input type="password" id="cpConfirm" autocomplete="new-password"></div>
+          </div>
+          <button class="btn btn-primary btn-sm" id="cpSubmitBtn">เปลี่ยนรหัสผ่าน</button>
+        </div>
+
+        <div class="card mt-16">
+          <div class="flex-between">
+            <h3 style="margin-top:0;">ความปลอดภัยบัญชีของฉัน — การยืนยันตัวตนหลายปัจจัย (MFA ผ่านอีเมล)</h3>
+            <button class="btn btn-outline btn-sm" id="mfaSetupBtn">ตั้งค่า MFA</button>
+          </div>
+          <p class="text-sm text-soft" id="mfaStatusText">กำลังตรวจสอบสถานะ...</p>
+          <div id="mfaSetupPanel" style="display:none;">
+            <div class="grid grid-2">
+              <div>
+                <p class="text-sm">กรอกอีเมลที่ต้องการใช้รับรหัส OTP ทุกครั้งที่เข้าสู่ระบบด้วยรหัสผ่าน:</p>
+                <div class="field"><label>อีเมล</label><input type="email" id="mfaEmailInput" placeholder="name@example.com"></div>
+                <button class="btn btn-outline btn-sm" id="mfaSendOtpBtn">ส่งรหัส OTP ไปยังอีเมลนี้</button>
+                <p class="text-sm text-soft mt-8" id="mfaSetupAlert"></p>
+              </div>
+              <div>
+                <div class="field"><label>กรอกรหัส OTP ที่ได้รับทางอีเมลเพื่อยืนยัน</label><input type="text" id="mfaConfirmOtp" maxlength="6" placeholder="รหัส 6 หลัก"></div>
+                <button class="btn btn-primary btn-sm" id="mfaConfirmBtn">ยืนยันและเปิดใช้งาน MFA</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- ---------- TAB: Audit ---------- -->
       <div id="tabAudit" class="tab-panel">
         <p class="text-soft text-sm">บันทึกการเข้าใช้งานและการแก้ไขข้อมูล 200 รายการล่าสุด</p>
@@ -475,6 +553,34 @@
     </div>
   </div>
 </main>
+
+<!-- บังคับเปลี่ยนรหัสผ่านชั่วคราวก่อนใช้งาน -->
+<div class="modal-overlay" id="forcePwModal" hidden>
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="forcePwTitle">
+    <div class="modal-header"><h3 id="forcePwTitle">🔑 ตั้งรหัสผ่านใหม่ก่อนใช้งาน</h3></div>
+    <div class="modal-body">
+      <p>บัญชีของคุณใช้รหัสผ่านชั่วคราว กรุณาตั้งรหัสผ่านใหม่ของตนเอง (อย่างน้อย 10 ตัวอักษร มีทั้งตัวอักษรและตัวเลข) จึงจะเริ่มใช้งานได้</p>
+      <div id="forcePwAlert"></div>
+      <div class="field"><label>รหัสผ่านชั่วคราวปัจจุบัน</label><input type="password" id="fpCurrent" autocomplete="current-password"></div>
+      <div class="field"><label>รหัสผ่านใหม่</label><input type="password" id="fpNew" autocomplete="new-password"></div>
+      <div class="field"><label>ยืนยันรหัสผ่านใหม่</label><input type="password" id="fpConfirm" autocomplete="new-password"></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" id="fpLogoutBtn" type="button">ออกจากระบบ</button> <button class="btn btn-primary" id="fpSubmitBtn" type="button">บันทึกรหัสผ่านใหม่</button></div>
+  </div>
+</div>
+
+<!-- แสดงรหัสผ่านชั่วคราวครั้งเดียว -->
+<div class="modal-overlay" id="tempPwModal" hidden>
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="tempPwTitle">
+    <div class="modal-header"><h3 id="tempPwTitle">รหัสผ่านชั่วคราว</h3></div>
+    <div class="modal-body">
+      <p>บัญชี <strong id="tempPwUser"></strong></p>
+      <p style="font-size:1.3rem; font-family:monospace; background:var(--line); padding:10px 14px; border-radius:8px; user-select:all;" id="tempPwValue"></p>
+      <p class="text-sm"><strong>แสดงครั้งเดียวเท่านั้น</strong> — ระบบไม่เก็บรหัสนี้ไว้ในรูปที่อ่านได้ และไม่ส่งทางอีเมล โปรดคัดลอกแล้วส่งให้ผู้ใช้ผ่านช่องทางที่ปลอดภัย ผู้ใช้จะถูกบังคับให้ตั้งรหัสผ่านใหม่เมื่อเข้าสู่ระบบครั้งแรก</p>
+    </div>
+    <div class="modal-footer"><button class="btn btn-outline" id="tempPwCopyBtn" type="button">คัดลอก</button> <button class="btn btn-primary" id="tempPwCloseBtn" type="button">ปิด</button></div>
+  </div>
+</div>
 
 <footer class="site-footer">
   <div class="container">
