@@ -252,7 +252,7 @@ function loadAllAdminData() {
   if (can('discipline_view')) loadDiscipline();
   if (can('agencies')) loadAgencies();
   if (can('audit')) loadAudit();
-  if (adminRole === 'superadmin') loadAdmins();
+  if (adminRole === 'superadmin') { loadAdmins(); loadThaidSetting(); }
 }
 
 // ---------------- Dashboard (ฉบับเต็มสำหรับเจ้าหน้าที่) ----------------
@@ -1354,4 +1354,38 @@ document.getElementById('tempPwCopyBtn').addEventListener('click', async () => {
 document.getElementById('tempPwCloseBtn').addEventListener('click', () => {
   document.getElementById('tempPwModal').hidden = true;
   document.getElementById('tempPwValue').textContent = ''; // ไม่ทิ้งรหัสไว้ใน DOM
+});
+
+// ================= ตั้งค่า: เปิด/ปิดการแสดง ThaiD =================
+// หน้าล็อกอินผู้ดูแล: ซ่อนส่วน ThaiD เป็นค่าเริ่มต้น แสดงเมื่อ server แจ้งว่าเปิดใช้งาน
+Api.publicConfig().then(cfg => {
+  if (cfg && cfg.thaidEnabled) document.getElementById('thaidStaffBlock').style.display = '';
+}).catch(() => {});
+
+let thaidSetting = null;
+function renderThaidSetting() {
+  const t = document.getElementById('thaidSettingText'), b = document.getElementById('thaidToggleBtn');
+  if (!thaidSetting) { t.textContent = 'โหลดสถานะไม่สำเร็จ'; b.disabled = true; return; }
+  const on = thaidSetting.thaidEnabled;
+  t.innerHTML = `สถานะ: <strong>${on ? 'เปิดใช้งาน (แสดงปุ่ม ThaiD)' : 'ปิด (ซ่อนปุ่ม ThaiD)'}</strong> · การเชื่อมต่อกับ ThaiD: ${thaidSetting.thaidConfigured ? 'ตั้งค่าแล้ว' : '<span style="color:var(--red-bad);">ยังไม่ได้ตั้งค่า (configureThaiD)</span>'}`;
+  b.textContent = on ? 'ปิดการใช้งาน ThaiD' : 'เปิดการใช้งาน ThaiD';
+  b.disabled = !on && !thaidSetting.thaidConfigured;
+}
+async function loadThaidSetting() {
+  try { thaidSetting = await Api.publicConfig(); } catch (e) { thaidSetting = null; }
+  renderThaidSetting();
+}
+document.getElementById('thaidToggleBtn').addEventListener('click', async () => {
+  if (!thaidSetting) return;
+  const next = !thaidSetting.thaidEnabled;
+  if (!confirm(next ? 'เปิดการเข้าสู่ระบบด้วย ThaiD และแสดงปุ่มในหน้าเว็บหรือไม่?' : 'ปิดการเข้าสู่ระบบด้วย ThaiD และซ่อนปุ่มในหน้าเว็บหรือไม่?')) return;
+  try {
+    thaidSetting = await Api.adminSetThaidEnabled(adminToken, next);
+    renderThaidSetting();
+    toast(next ? 'เปิดใช้งาน ThaiD แล้ว' : 'ปิดการใช้งาน ThaiD แล้ว');
+    if (can('audit')) loadAudit();
+  } catch (err) {
+    if (handleAuthFailure(err)) return;
+    toast('บันทึกไม่สำเร็จ: ' + (err.message === 'thaid_not_configured' ? 'ยังไม่ได้ตั้งค่าการเชื่อมต่อ ThaiD (configureThaiD)' : adminErrText(err.message)), 'error');
+  }
 });

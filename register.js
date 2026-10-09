@@ -27,6 +27,14 @@ function alertBox(elId, msg, type) {
 }
 
 // ---------------- ThaiD login ----------------
+// ส่วน ThaiD ซ่อนไว้เป็นค่าเริ่มต้น แสดงเมื่อ superadmin เปิดใช้งานในหน้าแอดมิน (ดึงค่าจาก server)
+Api.publicConfig().then(cfg => {
+  if (cfg && cfg.thaidEnabled) {
+    document.getElementById('thaidCard').style.display = '';
+    document.getElementById('thaidRegisterHint').style.display = '';
+  }
+}).catch(() => {});
+
 document.getElementById('thaidLoginBtn').addEventListener('click', async () => {
   const btn = document.getElementById('thaidLoginBtn');
   btn.disabled = true; btn.innerHTML = '<span class="spinner" style="border-color:#1e3a5f33;border-top-color:#1e3a5f;"></span> กำลังเชื่อมต่อ...';

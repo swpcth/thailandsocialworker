@@ -36,6 +36,7 @@
         <div class="auth-card">
           <h2>เข้าสู่ระบบผู้ดูแล</h2>
 
+          <div id="thaidStaffBlock" style="display:none;">
           <button class="btn" style="width:100%; background:linear-gradient(135deg,#12253d,#1e3a5f); color:#fff;" id="thaidStaffLoginBtn">เข้าสู่ระบบด้วย ThaiD</button>
           <div id="thaidStaffAlert" class="mt-8"></div>
           <p class="text-sm text-soft mt-8">ใช้ได้เฉพาะเจ้าหน้าที่ที่ผูกเลขบัตรประชาชนไว้กับบัญชีล่วงหน้าโดย superadmin เท่านั้น</p>
@@ -44,6 +45,7 @@
             <div style="flex:1; height:1px; background:var(--line);"></div>
             <span class="text-sm text-soft">หรือ</span>
             <div style="flex:1; height:1px; background:var(--line);"></div>
+          </div>
           </div>
 
           <!-- ขั้นที่ 1: ชื่อผู้ใช้ + รหัสผ่าน -->
@@ -447,6 +449,17 @@
           <p class="text-soft text-sm mb-0">เพิ่มผู้ดูแลระบบ กำหนดสิทธิ์การเข้าถึงรายข้อ ระงับบัญชี และรีเซ็ตรหัสผ่าน — การเปลี่ยนสิทธิ์/ระงับบัญชีมีผลทันทีในคำขอถัดไปของผู้ใช้นั้น</p>
           <button class="btn btn-primary btn-sm" id="addAdminBtn">+ เพิ่มผู้ดูแลระบบ</button>
         </div>
+        <div class="card mt-16" id="thaidSettingCard">
+          <div class="flex-between" style="flex-wrap:wrap; gap:12px;">
+            <div>
+              <h3 style="margin:0 0 4px;">การเข้าสู่ระบบด้วย ThaiD</h3>
+              <p class="text-sm text-soft" style="margin:0;" id="thaidSettingText">กำลังตรวจสอบสถานะ...</p>
+            </div>
+            <button class="btn btn-outline btn-sm" id="thaidToggleBtn" disabled>-</button>
+          </div>
+          <p class="text-sm text-soft mt-8 mb-0">เมื่อเปิด ปุ่ม ThaiD จะแสดงในหน้าผู้ปฏิบัติงานและหน้าผู้ดูแลระบบ เมื่อปิด ปุ่มจะถูกซ่อนและระบบหลังบ้านปฏิเสธการเข้าสู่ระบบด้วย ThaiD ด้วย (เปิดได้เมื่อ configureThaiD() ตั้งค่าแล้วเท่านั้น)</p>
+        </div>
+
         <div class="table-scroll mt-16">
           <table class="data-table">
             <thead><tr><th>ชื่อผู้ใช้</th><th>ชื่อที่แสดง</th><th>บทบาท</th><th>สถานะ</th><th>สิทธิ์</th><th>MFA</th><th>เข้าสู่ระบบล่าสุด</th><th></th></tr></thead>

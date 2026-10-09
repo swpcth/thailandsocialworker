@@ -59,6 +59,8 @@ const Api = (() => {
     adminVerifyLoginOtp: (username, otp) => post('adminVerifyLoginOtp', { username, otp }),
     adminSetupMfa: (token, email) => post('adminSetupMfa', { token, email }),
     adminConfirmMfa: (token, otp) => post('adminConfirmMfa', { token, otp }),
+    publicConfig: () => get('publicConfig'),
+    adminSetThaidEnabled: (token, enabled) => post('adminSetThaidEnabled', { token, enabled }),
     adminChangePassword: (token, currentPassword, newPassword) => post('adminChangePassword', { token, currentPassword, newPassword }),
     adminListAdmins: (token) => get('adminListAdmins', { token }),
     adminCreateAdmin: (token, data) => post('adminCreateAdmin', { token, data }),

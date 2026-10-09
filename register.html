@@ -31,7 +31,7 @@
     <div id="gateView">
       <h2 class="section-title">สำหรับผู้ปฏิบัติงานด้านสวัสดิการสังคม</h2>
       <p class="section-sub">ลงทะเบียนหรือเข้าสู่ระบบเพื่อจัดการข้อมูลส่วนตัวของท่าน ตามพระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล (PDPA)</p>
-      <div class="card mt-16" style="max-width:680px; border-color:#0b1f38; background:linear-gradient(135deg,#12253d,#1e3a5f); color:#fff;">
+      <div class="card mt-16" id="thaidCard" style="display:none; max-width:680px; border-color:#0b1f38; background:linear-gradient(135deg,#12253d,#1e3a5f); color:#fff;">
         <div class="flex-between" style="flex-wrap:wrap; gap:12px;">
           <div>
             <h3 style="margin:0 0 4px; color:#fff;">เข้าสู่ระบบด้วย ThaiD</h3>
@@ -50,7 +50,7 @@
         </div>
         <div class="card">
           <h3 style="margin-top:0;">ลงทะเบียนใหม่</h3>
-          <p class="text-soft text-sm">ยังไม่เคยลงทะเบียนในระบบ (หรือใช้ปุ่ม ThaiD ด้านบนเพื่อลงทะเบียนอัตโนมัติ)</p>
+          <p class="text-soft text-sm">ยังไม่เคยลงทะเบียนในระบบ<span id="thaidRegisterHint" style="display:none;"> (หรือใช้ปุ่ม ThaiD ด้านบนเพื่อลงทะเบียนอัตโนมัติ)</span></p>
           <button class="btn btn-primary" onclick="showView('registerView')">ลงทะเบียนด้วยรหัสผ่าน</button>
         </div>
       </div>
