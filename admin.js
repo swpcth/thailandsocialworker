@@ -28,7 +28,11 @@ function adminErrText(code) {
     invalid_credentials: 'รหัสผ่านปัจจุบันไม่ถูกต้อง',
     cannot_modify_self: 'ไม่สามารถเปลี่ยนบทบาท/สถานะ/สิทธิ์ของบัญชีตนเองได้',
     last_superadmin: 'ต้องมี superadmin ที่ใช้งานได้อย่างน้อย 1 คนเสมอ',
-    not_found: 'ไม่พบบัญชีนี้'
+    not_found: 'ไม่พบบัญชีนี้',
+    too_many_attempts: 'ลองผิดหลายครั้งเกินไป กรุณารอ 15 นาทีแล้วลองใหม่',
+    mfa_invalid: 'รหัส OTP ไม่ถูกต้อง',
+    otp_expired: 'รหัส OTP หมดอายุ',
+    unknown_action: 'ฝั่ง Apps Script ยังเป็นโค้ดเวอร์ชันเก่า — วาง Code.gs/ThaiD.gs/Setup.gs ใหม่ แล้ว Deploy > Manage deployments > Edit > New version'
   };
   return map[code] || code;
 }
@@ -116,6 +120,7 @@ document.getElementById('adminLoginBtn').addEventListener('click', async () => {
   } catch (err) {
     const msg = err.message === 'mfa_no_email' ? 'บัญชีนี้เปิดใช้งาน MFA แต่ยังไม่มีอีเมลผูกไว้ กรุณาติดต่อผู้ดูแลระบบ'
       : err.message === 'account_disabled' ? adminErrText('account_disabled')
+      : err.message === 'too_many_attempts' ? adminErrText('too_many_attempts')
       : 'เข้าสู่ระบบไม่สำเร็จ: ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง';
     document.getElementById('adminLoginAlert').innerHTML = `<div class="alert alert-error">${escapeHtml(msg)}</div>`;
   } finally {
@@ -135,6 +140,7 @@ document.getElementById('adminVerifyOtpBtn').addEventListener('click', async () 
     enterAdminApp(res.displayName || pendingMfaUsername, res.role, res);
   } catch (err) {
     const msg = err.message === 'otp_expired' ? 'รหัส OTP หมดอายุแล้ว กรุณากลับไปเข้าสู่ระบบใหม่เพื่อขอรหัสอีกครั้ง'
+      : err.message === 'too_many_attempts' ? 'กรอกรหัส OTP ผิดหลายครั้งเกินไป รหัสนี้ถูกยกเลิกแล้ว กรุณารอ 15 นาทีแล้วเข้าสู่ระบบใหม่'
       : 'รหัส OTP ไม่ถูกต้อง';
     document.getElementById('adminOtpAlert').innerHTML = `<div class="alert alert-error">${escapeHtml(msg)}</div>`;
   } finally {

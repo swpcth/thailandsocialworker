@@ -399,9 +399,15 @@ async function fetchPrefill() {
     toast('กรุณากรอกเลขบัตรประชาชน 13 หลักในข้อ 1 ก่อน', 'error');
     return null;
   }
-  if (prefillCache && prefillCache.nationalId === nationalId) return prefillCache.result;
-  const result = await Api.prefillLookup(nationalId);
-  prefillCache = { nationalId, result };
+  const claimCode = (document.getElementById('regClaimCode').value || '').trim();
+  if (prefillCache && prefillCache.nationalId === nationalId && prefillCache.claimCode === claimCode) return prefillCache.result;
+  let result;
+  try { result = await Api.prefillLookup(nationalId, claimCode); }
+  catch (err) {
+    if (err.message === 'too_many_attempts') { toast('กรอกรหัสยืนยันผิดหลายครั้งเกินไป กรุณารอ 15 นาทีแล้วลองใหม่', 'error'); return null; }
+    throw err;
+  }
+  prefillCache = { nationalId, claimCode, result };
   return result;
 }
 
@@ -427,6 +433,12 @@ async function pullFromCouncil(section) {
   const data = await fetchPrefill();
   if (data === null) return;
   if (!data.found) { toast('ไม่พบข้อมูลที่เคยลงทะเบียนไว้กับสภาฯ สำหรับเลขบัตรประชาชนนี้ กรุณากรอกข้อมูลด้วยตนเอง', 'error'); return; }
+  if (data.verificationRequired) {
+    toast(data.canVerify
+      ? (data.verified === false ? 'เลขที่สมาชิก/เลขที่ใบอนุญาตไม่ตรงกับข้อมูลของสภาฯ' : 'พบข้อมูลของท่านที่สภาฯ — กรุณากรอก "เลขที่สมาชิก หรือ เลขที่ใบอนุญาต" ในข้อ 1 เพื่อยืนยันตัวตนก่อน แล้วกดดึงข้อมูลอีกครั้ง')
+      : 'พบข้อมูลของท่านที่สภาฯ แต่ไม่มีเลขสำหรับยืนยันตัวตน กรุณาเข้าสู่ระบบด้วย ThaiD หรือติดต่อสภาฯ', 'error');
+    return;
+  }
   const p = data.person, f = form();
 
   if (section === 'address') {
@@ -489,7 +501,7 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
   const btn = document.getElementById('registerBtn');
   btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> กำลังลงทะเบียน...';
   try {
-    await Api.register(data, p1, collectWorkHistoryEntries('workHistoryRows'), collectEducationEntries('educationRows'), true);
+    await Api.register(data, p1, collectWorkHistoryEntries('workHistoryRows'), collectEducationEntries('educationRows'), true, (document.getElementById('regClaimCode').value || '').trim());
     toast('ลงทะเบียนสำเร็จ กรุณาเข้าสู่ระบบ');
     form.reset();
     clearWorkHistoryRows('workHistoryRows');
@@ -503,6 +515,12 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
       ? 'เลขบัตรประชาชนนี้ลงทะเบียนไว้แล้ว กรุณาเข้าสู่ระบบแทน'
       : err.message === 'pdpa_consent_required'
       ? 'กรุณายืนยันความยินยอม PDPA ก่อนลงทะเบียน'
+      : err.message === 'claim_verification_failed'
+      ? 'สภาฯ มีข้อมูลของเลขบัตรนี้อยู่แล้ว กรุณากรอก "เลขที่สมาชิก หรือ เลขที่ใบอนุญาต" ให้ตรงกับข้อมูลของสภาฯ เพื่อยืนยันตัวตน'
+      : err.message === 'claim_requires_thaid'
+      ? 'สภาฯ มีข้อมูลของเลขบัตรนี้อยู่แล้วแต่ไม่มีเลขสำหรับยืนยันตัวตน กรุณาเข้าสู่ระบบด้วย ThaiD หรือติดต่อสภาฯ'
+      : err.message === 'too_many_attempts'
+      ? 'ยืนยันตัวตนผิดหลายครั้งเกินไป กรุณารอ 15 นาทีแล้วลองใหม่'
       : 'ลงทะเบียนไม่สำเร็จ: ' + err.message;
     alertBox('registerAlert', msg, 'error');
   } finally {
@@ -524,7 +542,7 @@ document.getElementById('loginBtn').addEventListener('click', async () => {
     fillProfile(person, workHistory, educationHistory);
     showView('profileView');
   } catch (err) {
-    alertBox('loginAlert', 'เข้าสู่ระบบไม่สำเร็จ: เลขบัตรประชาชนหรือรหัสผ่านไม่ถูกต้อง', 'error');
+    alertBox('loginAlert', err.message === 'too_many_attempts' ? 'ลองผิดหลายครั้งเกินไป กรุณารอ 15 นาทีแล้วลองใหม่' : 'เข้าสู่ระบบไม่สำเร็จ: เลขบัตรประชาชนหรือรหัสผ่านไม่ถูกต้อง', 'error');
   } finally {
     btn.disabled = false; btn.textContent = 'เข้าสู่ระบบ';
   }

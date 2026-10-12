@@ -45,10 +45,10 @@ const Api = (() => {
     courses: (q) => get('courses', { q }),
     workHistory: (personId) => get('workHistory', { personId }),
 
-    register: (data, password, workHistoryEntries, educationEntries, pdpaConsent) => post('register', { data, password, workHistoryEntries, educationEntries, pdpaConsent }),
+    register: (data, password, workHistoryEntries, educationEntries, pdpaConsent, claimCode) => post('register', { data, password, workHistoryEntries, educationEntries, pdpaConsent, claimCode }),
     selfLogin: (nationalId, password) => post('selfLogin', { nationalId, password }),
     updateProfile: (nationalId, password, data, educationEntries, workHistoryEntries, pdpaConsent) => post('updateProfile', { nationalId, password, data, educationEntries, workHistoryEntries, pdpaConsent }),
-    prefillLookup: (nationalId) => get('prefillLookup', { nationalId }),
+    prefillLookup: (nationalId, claimCode) => get('prefillLookup', claimCode ? { nationalId, claimCode } : { nationalId }),
 
     // ThaiD (ระบบพิสูจน์และยืนยันตัวตนทางดิจิทัลภาครัฐ)
     thaidLoginUrl: (role, returnPath) => get('thaidLoginUrl', { role, returnPath: returnPath || '' }),
